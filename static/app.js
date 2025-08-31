@@ -9,7 +9,8 @@ const DEFAULTS = {
   truck_width_ft: 8.5,
   weight_per_axle_lbs: 12000,
 };
-
+// ---- Feedback form configuration ----
+const FEEDBACK_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSdBBiv32rnWWhIo2WS3C3k1tdKK5QFTUhFmgeNl-3ebh7qu_w/viewform";
 const carsTbody = document.getElementById("carsTbody");
 const addRowBtn = document.getElementById("addRow");
 const clearRowsBtn = document.getElementById("clearRows");
@@ -459,3 +460,12 @@ fetch('/static/build.json')
 // init
 setProfileInputs(DEFAULTS);
 addRow({}); addRow({}); addRow({});
+
+// --- Feedback: open the Google Form ---
+document.getElementById("feedbackBtn").addEventListener("click", () => {
+  window.open(FEEDBACK_FORM_URL, "_blank", "noopener");
+});
+document.getElementById("feedbackFooterLink").addEventListener("click", (e) => {
+  e.preventDefault();
+  window.open(FEEDBACK_FORM_URL, "_blank", "noopener");
+});

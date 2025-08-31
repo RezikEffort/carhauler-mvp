@@ -48,6 +48,23 @@
     .badge-ok { background:#12381f; color:#9ff0b0; border-color:#1d5a30; }
     .badge-warn { background:#4a2a00; color:#ffd89a; border-color:#7a4a00; }
     .badge-unknown { background:#1d2744; color:#b7c4e8; border-color:#2a3a66; }
+    .feedback-fab {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      background: #3c6df4;
+      border: 1px solid #3c6df4;
+      color: #e8eefc;
+      padding: 12px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 14px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+      z-index: 9999;
+    }
+    .feedback-fab:hover { filter: brightness(1.06); }
+
+    /* feedback button */
   </style>
 </head>
 <body>
@@ -164,9 +181,14 @@
 
     <div class="footer">
       Tip: edit the Truck &amp; Trailer section or hit “Reset defaults”. Addresses or lat,lng work for routing.
-      Build: <span id="buildInfo"></span>
+      <br />
+      <span class="small muted">
+        Build: v0.1.0-beta · 
+        <a id="feedbackFooterLink" href="#" target="_blank" rel="noopener">Give feedback</a>
+      </span>
     </div>
-  </div>
+  <!-- Floating Feedback Button -->
+  <button id="feedbackBtn" class="feedback-fab" title="Give feedback">Feedback</button>
 
   <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
