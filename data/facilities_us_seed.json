@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "units": { "height": "ft" },
+  "facilities": [
+    {
+      "name": "Baltimore Harbor Tunnel (I-895)",
+      "kind": "tunnel",
+      "bbox": [39.2450, -76.5850, 39.2650, -76.5550],
+      "min_height_ft": 13.5,
+      "notes": "Vehicles over 13′6″ or wider than 8′0″ are prohibited.",
+      "avoid_area_param": "bbox:-76.585,39.245,-76.555,39.265",
+      "via": null
+    },
+    {
+      "name": "Fort McHenry Tunnel (I-95)",
+      "kind": "tunnel",
+      "bbox": [39.2520, -76.5950, 39.2680, -76.5600],
+      "min_height_ft": 14.5,
+      "notes": "Most HAZMAT prohibited. Height 14′6″, width 11′0″.",
+      "avoid_area_param": "bbox:-76.595,39.252,-76.560,39.268",
+      "via": null
+    },
+    {
+      "name": "Holland Tunnel",
+      "kind": "tunnel",
+      "bbox": [40.7190, -74.0300, 40.7300, -73.9900],
+      "min_height_ft": 12.5,
+      "notes": "Truck restrictions; avoid for commercial trucks into Manhattan.",
+      "avoid_area_param": "bbox:-74.03,40.719,-73.99,40.73",
+      "via": null
+    },
+    {
+      "name": "Lincoln Tunnel",
+      "kind": "tunnel",
+      "bbox": [40.7570, -74.0200, 40.7640, -73.9900],
+      "min_height_ft": 13.0,
+      "notes": "Truck restrictions by tube; avoid tunnels for car-haulers.",
+      "avoid_area_param": "bbox:-74.02,40.757,-73.99,40.764",
+      "via": null
+    },
+    {
+      "name": "George Washington Bridge (Upper/Lower)",
+      "kind": "bridge",
+      "bbox": [40.8400, -73.9700, 40.8600, -73.9300],
+      "min_height_ft": 13.5,
+      "notes": "Trucks use UPPER (≈14′0″). LOWER is ≈13′6″ and not for trucks.",
+      "avoid_area_param": "bbox:-73.97,40.84,-73.93,40.86",
+      "via": "40.8517,-73.9527!stopDuration=0"
+    }
+  ]
+}

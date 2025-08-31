@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Car Hauler Planner (MVP)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif; }
+    body { margin: 0; background: #0b1220; color: #e8eefc; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    h1 { margin: 0 0 8px; font-size: 28px; }
+    .sub { color: #9fb1d1; margin-bottom: 20px; }
+    .card { background: #111a2e; border: 1px solid #1b2948; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    label { font-size: 14px; color: #b8c7e6; display:block; margin-bottom: 6px; }
+    input, button {
+      background: #0f1730; color: #e8eefc; border: 1px solid #223358;
+      border-radius: 8px; padding: 10px 12px; font-size: 14px;
+    }
+    input:focus { outline: none; border-color: #3c6df4; }
+    .row { display: grid; grid-template-columns: repeat(12, 1fr); gap: 12px; }
+    .col-2{ grid-column: span 2; } .col-3{ grid-column: span 3; } .col-4{ grid-column: span 4; } .col-6{ grid-column: span 6; } .col-12{ grid-column: span 12; }
+    .btn { cursor: pointer; }
+    .btn-primary { background: #3c6df4; border-color: #3c6df4; }
+    .btn-ghost { background: transparent; border-color: #223358; color:#c7d5f3; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid #1b2948; padding: 8px; font-size: 14px; }
+    th { text-align: left; color: #9fb1d1; }
+    .muted { color: #9fb1d1; }
+    .warning { color: #ffdf8d; }
+    .ok { color: #85f2a2; }
+    .pill { display:inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; border:1px solid #223358; }
+    .grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    .small { font-size: 12px; }
+    .right { text-align: right; }
+    .sep { height: 8px; }
+    .footer { color:#6f83ab; font-size:12px; margin-top:12px; }
+    #map { height:320px; border:1px solid #1b2948; border-radius:12px; margin-bottom:12px; }
+    .buttons-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+
+    /* legality badges */
+    .badge { display:inline-block; padding:4px 10px; border-radius:999px; font-size:12px; border:1px solid #223358; margin-right:6px; }
+    .badge-ok { background:#12381f; color:#9ff0b0; border-color:#1d5a30; }
+    .badge-warn { background:#4a2a00; color:#ffd89a; border-color:#7a4a00; }
+    .badge-unknown { background:#1d2744; color:#b7c4e8; border-color:#2a3a66; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Car Hauler Planner</h1>
+    <div class="sub">Enter pickup/dropoff and your cars. Defaults assume a stinger 9-car rig — edit below if needed.</div>
+
+    <div class="card">
+      <div class="row">
+        <div class="col-6">
+          <label>Pickup (origin) <span class="small muted">address or lat,lng</span></label>
+          <input id="origin" placeholder="Baltimore, MD" value="Baltimore, MD" />
+        </div>
+        <div class="col-6">
+          <label>Dropoff (destination) <span class="small muted">address or lat,lng</span></label>
+          <input id="destination" placeholder="New York, NY" value="New York, NY" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Truck & Trailer profile -->
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <strong>Truck &amp; Trailer</strong>
+        <div><button class="btn btn-ghost" id="resetProfile">Reset defaults</button></div>
+      </div>
+      <div class="row">
+        <div class="col-3"><label>Tractor empty weight (lbs)</label><input id="tractorWeight" type="number" step="1" /></div>
+        <div class="col-3"><label>Trailer empty weight (lbs)</label><input id="trailerWeight" type="number" step="1" /></div>
+        <div class="col-3"><label>Deck height (ft)</label><input id="deckHeight" type="number" step="0.01" /></div>
+        <div class="col-3"><label>Weight per axle (lbs)</label><input id="axleWeight" type="number" step="1" /></div>
+      </div>
+      <div class="sep"></div>
+      <div class="row">
+        <div class="col-3"><label>Total length (ft)</label><input id="truckLength" type="number" step="0.1" /></div>
+        <div class="col-3"><label>Width (ft)</label><input id="truckWidth" type="number" step="0.1" /></div>
+        <div class="col-6 right"><label>&nbsp;</label><span class="small muted">Max cars shown below; won’t exceed 9 for this MVP.</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div><strong>Cars to haul</strong> <span class="small muted">(max 9)</span></div>
+        <div>
+          <button class="btn btn-ghost" id="addRow">+ Add car</button>
+          <button class="btn btn-ghost" id="clearRows">Clear</button>
+          <button class="btn btn-ghost" id="demoFill">Demo: Load 9 real cars</button>
+        </div>
+      </div>
+      <div class="sep"></div>
+      <table id="carsTable">
+        <thead>
+          <tr>
+            <th>#</th><th>Make</th><th>Model</th><th>Year</th><th>Height (ft)</th><th>Weight (lbs)</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="carsTbody"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <button class="btn btn-primary" id="planBtn">Plan Route</button>
+      <span id="status" class="small muted" style="margin-left:12px;"></span>
+    </div>
+
+    <div id="results" class="card" style="display:none;">
+      <div><strong>Driver warnings</strong></div>
+      <ul id="warnings"></ul>
+
+      <div id="routeDelta" class="small muted" style="margin:6px 0 10px 0;"></div>
+      <div id="map"></div>
+
+      <div class="buttons-row">
+        <button class="btn btn-primary" id="openPrimary">Open PRIMARY in Google Maps</button>
+        <button class="btn btn-ghost" id="openAlternative" disabled>Open ALTERNATIVE in Google Maps</button>
+        <button id="openFallback" class="btn">Open Fallback in Google Maps</button>
+
+        <span class="small muted">Note: Google Maps can’t enforce truck height/weight. Use our warnings.</span>
+      </div>
+
+      <div id="routeResolved" class="small muted" style="margin-top:8px;"></div>
+
+      <!-- Legality badges + notes -->
+      <div id="legalityBadges" style="margin-top:10px;"></div>
+      <div id="legalityNotes"></div>
+
+      <div class="sep"></div>
+      <div class="grid-2">
+        <div>
+          <div><strong>Chosen route</strong></div>
+          <div id="chosenSummary" class="muted small"></div>
+          <div class="sep"></div>
+          <div><strong>Totals sent to HERE</strong></div>
+          <div id="totals" class="small"></div>
+        </div>
+        <div>
+          <div><strong>Truck &amp; Trailer used</strong></div>
+          <div id="profileUsed" class="small"></div>
+          <div class="sep"></div>
+          <div><strong>Deck heights</strong></div>
+          <div id="decks" class="small"></div>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+      <div>
+        <div><strong>Placement plan</strong> <span class="small muted">(slot → vehicle)</span></div>
+        <table>
+          <thead><tr><th>Slot</th><th>Vehicle</th><th>Specs</th></tr></thead>
+          <tbody id="layoutBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="footer">
+      Tip: edit the Truck &amp; Trailer section or hit “Reset defaults”. Addresses or lat,lng work for routing.
+    </div>
+  </div>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>
