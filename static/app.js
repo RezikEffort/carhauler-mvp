@@ -447,6 +447,15 @@ openPrimaryBtn.addEventListener("click", () => { if (LAST_RESP) openInGoogleMaps
 openAltBtn.addEventListener("click", () => { if (LAST_RESP) openInGoogleMaps(LAST_RESP, true); });
 openFallbackBtn.addEventListener("click", () => { if (LAST_RESP) openFallbackInGoogleMaps(LAST_RESP); });
 
+// Build info banner
+fetch('/static/build.json')
+  .then(r => r.json())
+  .then(b => {
+    document.getElementById('buildInfo').textContent =
+      `${b.version || ''} ${b.commit ? '('+b.commit.substring(0,7)+')' : ''}`;
+  })
+  .catch(()=>{});
+
 // init
 setProfileInputs(DEFAULTS);
 addRow({}); addRow({}); addRow({});
