@@ -49,6 +49,16 @@ const axleWeightInput   = document.getElementById("axleWeight");
 const truckLengthInput  = document.getElementById("truckLength");
 const truckWidthInput   = document.getElementById("truckWidth");
 
+// ---- mobile class toggle (scopes CSS so desktop doesn't change) ----
+function setMobileClass() {
+  const isMobile = window.innerWidth <= 640;
+  document.body.classList.toggle('is-mobile', isMobile);
+}
+window.addEventListener('resize', setMobileClass);
+window.addEventListener('orientationchange', setMobileClass);
+window.addEventListener('DOMContentLoaded', setMobileClass);
+
+
 let MAP = null;
 let LAYER_PRIMARY = null;
 let LAYER_ALT = null;
@@ -99,12 +109,25 @@ function rowTpl(idx, car = {}) {
       <td><input placeholder="Make" value="${make}"></td>
       <td><input placeholder="Model" value="${model}"></td>
       <td><input type="number" placeholder="Year" value="${year}"></td>
-      <td><input type="number" step="0.01" placeholder="Height ft (optional)" value="${h}"></td>
-      <td><input type="number" step="1" placeholder="Weight lbs (optional)" value="${w}"></td>
-      <td><button class="btn btn-ghost small" onclick="removeRow(this)">Remove</button></td>
+      <td><input type="number" step="0.01" placeholder="Height" value="${h}"></td>
+      <td><input type="number" step="1" placeholder="Weight" value="${w}"></td>
+      <td>
+        <button class="btn btn-ghost small btn-remove" onclick="removeRow(this)">
+          <span class="icon" aria-hidden="true">
+            <!-- crisp minus icon -->
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" focusable="false" aria-hidden="true">
+              <rect x="5" y="11" width="14" height="2" rx="1"></rect>
+            </svg>
+          </span>
+          <span class="label">Remove</span>
+        </button>
+      </td>
     </tr>
   `;
 }
+
+
+
 window.removeRow = (btn) => {
   btn.closest("tr").remove();
   renumber();
@@ -287,8 +310,10 @@ function showResults(resp) {
     bounds.push(...latlngsFb);
   }
   if (bounds.length > 0) {
-    MAP.fitBounds(bounds, { padding: [20, 20] });
-  }
+  MAP.fitBounds(bounds, { padding: [20, 20] });
+  // ensure tiles/lines render correctly on mobile after layout changes
+  setTimeout(() => { try { MAP.invalidateSize(true); } catch(e) {} }, 0);
+}
 
   // enable/disable Google buttons
   openPrimaryBtn.disabled = !(Array.isArray(pPath) && pPath.length >= 2);
