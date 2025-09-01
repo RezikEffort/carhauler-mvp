@@ -202,9 +202,27 @@
     }
 
 
+    /* ===== Mobile fixes (iPhone) ===== */
+    @media (max-width: 640px) {
+      /* 1) DO NOT stick the Remove column on mobile */
+      #carsTable th:last-child,
+      #carsTable td:last-child {
+        position: static !important;     /* cancel sticky */
+        right: auto !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        width: auto !important;
+        padding-left: 8px;                /* small breathing room */
+        padding-right: 8px;
+        text-align: right;
+        z-index: auto;
+      }
 
+      /* 2) Hide the floating feedback pill on phones;
+            users will still have the footer "Give feedback" link */
+      .feedback-fab { display: none !important; }
+    }
 
-    /* feedback button */
   </style>
 
 
