@@ -72,6 +72,66 @@
       .grid2{grid-template-columns:1fr 1fr}
     }
 
+    /* ——— UNIFY SELECTS + NUMBER INPUTS ——— */
+    /* Give selects and height/weight inputs the same typography */
+    :root{
+      --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+    .select-light,
+    input.height,
+    input.weight,
+    select.year,
+    select.make,
+    select.model {
+      font-family: var(--font-ui);
+      font-size: 12px;        /* same as selects, avoids iOS zoom */
+      line-height: 1.2;
+      font-weight: 500;       /* matches your select weight */
+    }
+
+    /* Make numeric fields behave the same cross-browser */
+    input[type="number"] {
+      font-family: var(--font-ui);
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum";
+      -webkit-text-size-adjust: 100%;
+    }
+
+    /* On very small screens keep them consistent */
+    @media (max-width: 640px){
+      .select-light,
+      input.height,
+      input.weight,
+      select.year,
+      select.make,
+      select.model {
+        font-size: 8px;  /* keep equal to prevent iOS zoom dancing */
+      }
+    }
+
+    /* ——— RELIABLE COLORS FOR BADGES & WARNINGS ——— */
+    .badge { border: 1px solid #24324e; }
+    .badge-ok {
+      background:#0f3b1d !important;
+      color:#b7f3cb !important;
+      border-color:#195a30 !important;
+    }
+    .badge-warn {
+      background:#43220f !important;
+      color:#ffd9a8 !important;
+      border-color:#6b3a15 !important;
+    }
+    .badge-unknown {
+      background:#1f2937 !important;
+      color:#cbd5e1 !important;
+      border-color:#2b394f !important;
+    }
+
+    /* Warnings list in Results card */
+    #warnings li.warning { color:#ffd9a8 !important; }
+    #warnings li.ok      { color:#b7f3cb !important; }
+
+
     /* Prevent accidental ellipsis inside selects across browsers */
     select option, select{white-space:nowrap}
 
