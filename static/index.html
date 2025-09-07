@@ -2,34 +2,55 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
   <title>Car Hauler Planner</title>
 
-  <!-- Leaflet (for the map) -->
+  <!-- Leaflet (map) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <style>
-    :root { --bg:#0f172a; --card:#0b1220; --muted:#94a3b8; --line:#1f2937; --text:#e5e7eb; --accent:#2563eb; }
+    :root{--bg:#0f172a;--card:#0b1220;--muted:#94a3b8;--line:#1f2937;--text:#e5e7eb;--accent:#2563eb}
     *{box-sizing:border-box}
     html,body{height:100%}
     body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
     .container{max-width:1200px;margin:32px auto;padding:0 16px}
-    h1{margin:0 0 12px;font-size:22px}
+
+    /* Header */
+    .page-header{display:flex;align-items:center;justify-content:space-between;margin:0 0 12px}
+    h1{margin:0;font-size:22px;letter-spacing:.2px;font-weight:700}
+    .subtle{color:#b6c2d0;font-size:13px}
+
     .row{display:flex;gap:12px;flex-wrap:wrap}
     .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
-    .toolbar{display:flex;gap:8px;align-items:center}
-    .btn{border:1px solid var(--line);background:#101828;color:var(--text);padding:8px 10px;border-radius:8px;cursor:pointer}
+    .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+    /* Buttons */
+    .btn{border:1px solid var(--line);background:#101828;color:var(--text);padding:8px 10px;border-radius:8px;cursor:pointer;line-height:1}
     .btn.primary{background:var(--accent);border-color:#1d4ed8}
     .btn.small{padding:6px 8px;font-size:12px}
+    .btn-ghost{background:transparent;border-color:#2b364d}
+    .btn-remove{display:inline-flex;align-items:center;gap:6px}
+    .btn-remove .icon svg{width:14px;height:14px;display:block}
+
     .muted{color:var(--muted)}
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    input,select{background:#0a1222;border:1px solid #253045;color:var(--text);padding:8px 10px;border-radius:8px;width:100%}
+
+    /* Inputs */
+    input,select{background:#0a1222;border:1px solid #253045;color:var(--text);padding:8px 10px;border-radius:8px;width:100%;font-size:16px} /* 16px avoids iOS zoom */
+
+    /* Tables */
     table{width:100%;border-collapse:collapse}
-    th,td{border-bottom:1px solid #1f2937;padding:8px;text-align:left}
-    th{font-weight:600;color:#cbd5e1}
-    .select-wrap.is-loading:after{content:"";width:12px;height:12px;border:2px solid #93c5fd;border-top-color:transparent;border-radius:50%;display:inline-block;margin-left:6px;animation:spin .8s linear infinite;vertical-align:middle}
+    th,td{border-bottom:1px solid #1f2937;padding:8px;text-align:left;vertical-align:middle}
+    th{font-weight:600;color:#cbd5e1;white-space:nowrap}
+    .cars-table th,.cars-table td{white-space:nowrap}
+
+    /* Select loading spinner */
+    .select-wrap.is-loading:after{
+      content:"";width:12px;height:12px;border:2px solid #93c5fd;border-top-color:transparent;border-radius:50%;
+      display:inline-block;margin-left:6px;animation:spin .8s linear infinite;vertical-align:middle}
     @keyframes spin{to{transform:rotate(360deg)}}
+
     #map{height:360px;border:1px solid #1f2937;border-radius:12px}
     .pill{display:inline-block;padding:2px 6px;border-radius:999px;background:#22314d;color:#cfe1ff;font-size:11px}
     .badge{padding:2px 6px;border-radius:6px;font-size:11px;border:1px solid #24324e}
@@ -38,70 +59,87 @@
     .badge-unknown{background:#1f2937;color:#cbd5e1}
     .ok{color:#b7f3cb}
     .warning{color:#ffd9a8}
-    .section-title{margin:6px 0 10px 0;font-size:16px}
+    .section-title{margin:6px 0 10px 0;font-size:16px;font-weight:600}
+
+    /* Scroll helpers for small screens */
+    .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+    /* Footer */
+    .footer{margin:16px 0;text-align:center;color:var(--muted);font-size:13px}
 
     /* === Mobile polish (≤640px) ===================================== */
-    @media (max-width: 640px) {
-      /* Horizontal scroll for the cars table instead of squishing */
-      .table-scroll {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-      }
-      .table-scroll table {
-        min-width: 880px; /* tune if you add/remove columns */
-      }
+    @media (max-width:640px){
+      body{font-size:14px}
+      .container{margin:18px auto}
+      h1{font-size:18px}
+      .section-title{font-size:15px;margin:4px 0 8px}
+      .toolbar{gap:6px}
+      th,td{padding:6px 8px;font-size:13px}
 
-      /* Touch-friendly controls */
-      select,
-      input[type="number"],
-      input[type="text"],
-      button {
-        width: 100%;
-        min-height: 44px; /* comfortable tap target */
-      }
+      /* Cars: keep horizontal scroll; hide index column */
+      .table-scroll .cars-table{table-layout:fixed;min-width:980px}
+      .cars-table thead th:first-child,
+      .cars-table tbody td:first-child{display:none}
 
-      /* Tighten table cell padding on mobile */
-      th, td { padding: 6px 8px; }
+      /* Placement: keep Slot visible; allow spec wrapping */
+      .table-scroll .placement-table{table-layout:fixed;min-width:700px}
+      .placement-table td:last-child{white-space:normal}
 
-      /* Optionally hide the index column on small screens */
-      thead th:first-child,
-      tbody td:first-child { display: none; }
+      /* Touch-friendly targets */
+      select,input,button{min-height:44px}
 
-      /* Map height responsive to mobile viewport */
-      #map {
-        min-height: 260px;
-        height: calc(var(--vh, 1vh) * 45); /* ~45vh using JS var below */
-      }
+      /* Map height with safe viewport units */
+      #map{min-height:260px;height:calc(var(--vh,1vh)*45)}
+
+      /* Icon-only Remove button on mobile */
+      .btn-remove{padding:6px;border-radius:999px}
+      .btn-remove .label{display:none}
+      .btn-remove .icon svg{width:12px;height:12px}
+
+      /* Put build text in footer only on mobile */
+      #buildInfo{display:none}
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Car Hauler Planner</h1>
+    <div class="page-header">
+      <h1>Car Hauler Planner</h1>
+      <div class="subtle" id="buildInfo"></div> <!-- desktop shows here -->
+    </div>
 
     <!-- Controls -->
     <div class="card">
-      <div class="toolbar" style="justify-content:space-between;flex-wrap:wrap">
-        <div class="toolbar" style="gap:8px">
+      <div class="toolbar" style="justify-content:space-between">
+        <div class="toolbar">
           <button id="addRow" class="btn small">+ Add car</button>
           <button id="clearRows" class="btn small">Clear</button>
           <button id="demoFill" class="btn small">Demo: Load 9 real cars</button>
         </div>
-        <div class="muted" id="buildInfo"></div>
+        <!-- (buildInfo stays here for desktop; hidden on mobile via CSS) -->
       </div>
 
-      <!-- Cars table -->
-      <div class="table-scroll" style="margin-top:12px;">
+      <!-- Cars table (scroll container on mobile) -->
+      <div class="table-scroll" style="margin-top:12px">
         <table class="cars-table">
+          <colgroup>
+            <col style="width:40px"/>
+            <col style="width:130px"/>
+            <col style="width:180px"/>
+            <col style="width:220px"/>
+            <col style="width:160px"/>
+            <col style="width:160px"/>
+            <col style="width:120px"/>
+          </colgroup>
           <thead>
             <tr>
-              <th style="width:36px">#</th>
-              <th style="width:120px">Year</th>
-              <th style="width:180px">Make</th>
-              <th style="width:200px">Model</th>
-              <th style="width:140px">Height (ft)</th>
-              <th style="width:140px">Weight (lbs)</th>
-              <th style="width:120px"></th>
+              <th>#</th>
+              <th>Year</th>
+              <th>Make</th>
+              <th>Model</th>
+              <th>Height (ft)</th>
+              <th>Weight (lbs)</th>
+              <th></th>
             </tr>
           </thead>
           <tbody id="carsTbody"></tbody>
@@ -133,8 +171,8 @@
       <div class="card" style="flex:1 1 520px">
         <div class="section-title">Truck / Trailer Profile</div>
         <div class="grid2">
-          <div><label class="muted">Tractor weight (lbs)</label><input id="tractorWeight" type="number" /></div>
-          <div><label class="muted">Trailer weight (lbs)</label><input id="trailerWeight" type="number" /></div>
+          <div><label class="muted">Tractor weight (lbs)</label><input id="tractorWeight" type="number"/></div>
+          <div><label class="muted">Trailer weight (lbs)</label><input id="trailerWeight" type="number"/></div>
           <div><label class="muted">Deck height (ft)</label><input id="deckHeight" type="number" step="0.01"/></div>
           <div><label class="muted">Weight per axle (lbs)</label><input id="axleWeight" type="number"/></div>
           <div><label class="muted">Truck length (ft)</label><input id="truckLength" type="number" step="0.1"/></div>
@@ -173,16 +211,29 @@
         </div>
       </div>
 
+      <!-- Placement (slots) — inside scroll container for mobile -->
       <div class="card" style="margin-top:12px">
         <div class="section-title">Placement (slots)</div>
-        <table>
-          <thead><tr><th>Slot</th><th>Vehicle</th><th>Spec</th></tr></thead>
-          <tbody id="layoutBody"></tbody>
-        </table>
+        <div class="table-scroll">
+          <table class="placement-table">
+            <colgroup>
+              <col style="width:110px"/>   <!-- Slot -->
+              <col style="width:240px"/>   <!-- Vehicle -->
+              <col/>                       <!-- Spec -->
+            </colgroup>
+            <thead><tr><th>Slot</th><th>Vehicle</th><th>Spec</th></tr></thead>
+            <tbody id="layoutBody"></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
-    <div style="text-align:center;margin:16px 0" class="muted">
+    <!-- Footer (mobile shows version here) -->
+    <div class="footer">
+      <span id="buildInfoFooter"></span>
+    </div>
+
+    <div style="text-align:center;margin:8px 0" class="muted">
       <button id="feedbackBtn" class="btn small">Send feedback</button>
       &nbsp;&nbsp;|&nbsp;&nbsp;
       <a id="feedbackFooterLink" href="#" class="muted">Open form</a>
@@ -191,17 +242,25 @@
 
   <!-- Mobile viewport & map resize fix -->
   <script>
-    // Fix mobile 100vh (iOS) and keep Leaflet map sized on rotate/resize
-    function setVhVar() {
-      const vh = window.innerHeight * 0.01;
-      document.documentElement.style.setProperty('--vh', `${vh}px`);
-    }
-    function invalidateMap() {
-      try { if (window.MAP && typeof window.MAP.invalidateSize === 'function') window.MAP.invalidateSize(true); } catch (_) {}
-    }
-    window.addEventListener('resize', () => { setVhVar(); invalidateMap(); });
-    window.addEventListener('orientationchange', () => { setVhVar(); invalidateMap(); });
-    document.addEventListener('DOMContentLoaded', setVhVar);
+    function setVhVar(){ const vh = window.innerHeight * 0.01; document.documentElement.style.setProperty('--vh', `${vh}px`); }
+    function invalidateMap(){ try{ if(window.MAP && typeof window.MAP.invalidateSize==='function'){ window.MAP.invalidateSize(true); } }catch(e){} }
+    setVhVar();
+    window.addEventListener('resize', ()=>{ setVhVar(); invalidateMap(); }, {passive:true});
+    window.addEventListener('orientationchange', ()=>{ setTimeout(()=>{ setVhVar(); invalidateMap(); }, 250); }, {passive:true});
+  </script>
+
+  <!-- Mirror desktop buildInfo into footer without touching app.js -->
+  <script>
+    (function(){
+      const src = document.getElementById('buildInfo');
+      const dst = document.getElementById('buildInfoFooter');
+      if(!src || !dst) return;
+      const sync = () => { dst.textContent = src.textContent || ''; };
+      const mo = new MutationObserver(sync);
+      mo.observe(src, {childList:true,subtree:true,characterData:true});
+      window.addEventListener('load', sync);
+      sync();
+    })();
   </script>
 
   <!-- Main app logic -->
