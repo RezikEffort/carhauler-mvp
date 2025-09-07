@@ -5,38 +5,44 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Car Hauler Planner</title>
 
-  <!-- Leaflet (for the map) -->
+  <!-- Leaflet (map) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <style>
+    /* ---------------------------
+       Design tokens (light polish)
+    ---------------------------- */
     :root{
       --bg:#0f172a; --card:#0b1220; --muted:#94a3b8; --line:#1f2937; --text:#e5e7eb; --accent:#2563eb;
+      --radius-lg:14px; --radius-md:10px;
+      --shadow-1:0 6px 24px rgba(0,0,0,.28); --shadow-2:0 10px 40px rgba(0,0,0,.36);
+      --space-1:6px; --space-2:10px; --space-3:12px; --space-4:16px;
+      --fs-12:clamp(11px,.9vw,12px); --fs-13:clamp(12px,.95vw,13px); --fs-14:clamp(12px,1vw,14px); --fs-16:clamp(14px,1.2vw,16px);
     }
+
     *{box-sizing:border-box}
     html,body{height:100%}
     body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
 
     .container{max-width:1200px;margin:32px auto;padding:0 16px}
-    h1{margin:0 0 12px;font-size:22px}
+    h1{margin:0 0 12px;font-size:clamp(20px,2.4vw,28px);letter-spacing:.2px}
 
     .row{display:flex;gap:12px;flex-wrap:wrap}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-lg);padding:14px;box-shadow:var(--shadow-1)}
     .toolbar{display:flex;gap:8px;align-items:center}
     .btn{border:1px solid var(--line);background:#101828;color:var(--text);padding:8px 10px;border-radius:8px;cursor:pointer}
-    .btn.primary{background:var(--accent);border-color:#1d4ed8}
+    .btn.primary{background:linear-gradient(180deg,#2b66ef,#2057d8);border-color:#1d4ed8}
     .btn.small{padding:6px 8px;font-size:12px}
     .muted{color:var(--muted)}
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     input,select{background:#0a1222;border:1px solid #253045;color:var(--text);padding:8px 10px;border-radius:8px;width:100%}
-
+    input:focus,select:focus,.btn:focus{outline:none;box-shadow:0 0 0 2px rgba(37,99,235,.35)}
     table{width:100%;border-collapse:collapse}
     th,td{border-bottom:1px solid #1f2937;padding:8px;text-align:left}
     th{font-weight:600;color:#cbd5e1}
-
     .select-wrap.is-loading:after{content:"";width:12px;height:12px;border:2px solid #93c5fd;border-top-color:transparent;border-radius:50%;display:inline-block;margin-left:6px;animation:spin .8s linear infinite;vertical-align:middle}
     @keyframes spin{to{transform:rotate(360deg)}}
-
     #map{height:360px;border:1px solid #1f2937;border-radius:12px}
 
     .pill{display:inline-block;padding:2px 6px;border-radius:999px;background:#22314d;color:#cfe1ff;font-size:11px}
@@ -44,76 +50,49 @@
     .badge-ok{background:#0f3b1d;color:#b7f3cb;border-color:#195a30}
     .badge-warn{background:#43220f;color:#ffd9a8;border-color:#6b3a15}
     .badge-unknown{background:#1f2937;color:#cbd5e1}
-    .ok{color:#b7f3cb}
-    .warning{color:#ffd9a8}
+    .ok{color:#b7f3cb}.warning{color:#ffd9a8}
     .section-title{margin:6px 0 10px 0;font-size:16px}
 
-    /* --- Cars table: give it a class so we only reshape THIS table on mobile --- */
-    .cars-table th.col-num{width:36px}
-    .cars-table th.col-year{width:120px}
-    .cars-table th.col-make{width:180px}
-    .cars-table th.col-model{width:200px}
-    .cars-table th.col-height{width:140px}
-    .cars-table th.col-weight{width:140px}
-    .cars-table th.col-remove{width:120px}
-
-    /* Placement table keeps its normal tabular layout even on mobile */
-    .placement-table th, .placement-table td { font-size: 14px; }
-
-    /* ---------------- MOBILE ---------------- */
-    @media (max-width: 640px) {
-      html, body { overflow-x:hidden; }
-      body { font-size:14px; }
-      h1 { font-size:20px; }
-
-      /* Make action buttons wrap nicely */
-      .toolbar{flex-wrap:wrap}
-
-      /* Remove extra horizontal scroll: show cars as cards (no table header) */
-      .cars-wrap{overflow:visible !important}
-      .cars-table{table-layout:auto; max-width:100%}
-      .cars-table thead{display:none}
-      .cars-table tr{
-        display:block;
-        position:relative;
-        padding:12px;
-        margin:0 0 12px 0;
-        border:1px solid var(--line);
-        border-radius:12px;
-        background:var(--card);
-      }
-      .cars-table td{display:block;border:0;padding:6px 0}
-      .cars-table td:nth-child(1){display:none} /* hide row # */
-      .cars-table td:nth-child(2)::before{content:"Year";display:block;color:var(--muted);font-size:12px;margin:0 0 4px}
-      .cars-table td:nth-child(3)::before{content:"Make";display:block;color:var(--muted);font-size:12px;margin:8px 0 4px}
-      .cars-table td:nth-child(4)::before{content:"Model";display:block;color:var(--muted);font-size:12px;margin:8px 0 4px}
-      .cars-table td:nth-child(5)::before{content:"Height (ft)";display:block;color:var(--muted);font-size:12px;margin:8px 0 4px}
-      .cars-table td:nth-child(6)::before{content:"Weight (lbs)";display:block;color:var(--muted);font-size:12px;margin:8px 0 4px}
-
-      /* Full-width selects/inputs; allow shrinking (no min-width) */
-      .cars-table select, .cars-table input{width:100%; min-width:0}
-
-      /* Compact icon-only remove button fixed to top-right of the card */
-      .cars-table td:last-child{
-        position:absolute; top:10px; right:10px; padding:0; border:0;
-      }
-      .btn-remove{width:32px;height:32px;padding:0;border-radius:999px;display:flex;align-items:center;justify-content:center}
-      .btn-remove .label{display:none}
-      .btn-remove .icon svg{width:14px;height:14px}
-
-      /* Smaller badges/pills to fit mobile */
-      .badge, .pill { font-size:10px; }
-      .grid2{grid-template-columns:1fr} /* stack route/profile inputs */
-      #map{height:300px}
+    /* Mobile table: reduce font & padding a hair for compactness */
+    @media (max-width:640px){
+      th,td{padding:7px}
+      body{font-size:var(--fs-14)}
+      .container{margin:20px auto}
     }
 
-    /* Footer build label */
-    footer{
-      color:var(--muted);
-      text-align:center;
-      font-size:12px;
-      margin:18px 0 24px;
+    /* ---------------------------
+       Sticky Action Bar (mobile)
+    ---------------------------- */
+    .sticky-bar{
+      position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));
+      background:rgba(11,18,32,.92);backdrop-filter:blur(6px);
+      border:1px solid #22324a;border-radius:14px;box-shadow:var(--shadow-2);
+      padding:10px;display:none;align-items:center;justify-content:space-between;gap:10px;z-index:60;
     }
+    .sticky-bar .info{font-size:var(--fs-12);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .sticky-bar .btn{padding:10px 14px}
+    @media (min-width:641px){ .sticky-bar{display:none!important} }   /* desktop never shows */
+    body.show-sticky .sticky-bar{display:flex}
+
+    /* ---------------------------
+       Toasts
+    ---------------------------- */
+    #toasts{
+      position:fixed;left:50%;transform:translateX(-50%);
+      bottom:calc(84px + env(safe-area-inset-bottom)); /* floats above sticky bar */
+      display:flex;flex-direction:column;gap:8px;z-index:70;pointer-events:none;
+    }
+    .toast{
+      pointer-events:auto; background:#0b1220;border:1px solid #23324b;color:#cfe1ff;
+      padding:10px 12px;border-radius:10px;box-shadow:var(--shadow-1);font-size:var(--fs-14);
+      opacity:0; transform:translateY(6px); animation:toastIn .16s ease forwards;
+    }
+    .toast.good{border-color:#195a30;color:#b7f3cb}
+    .toast.bad{border-color:#6b3a15;color:#ffd9a8}
+    @keyframes toastIn{to{opacity:1;transform:translateY(0)}}
+
+    /* Footer build label lives here nicely on mobile */
+    footer{margin:18px 0;text-align:center;font-size:var(--fs-12);color:var(--muted)}
   </style>
 </head>
 <body>
@@ -128,21 +107,22 @@
           <button id="clearRows" class="btn small">Clear</button>
           <button id="demoFill" class="btn small">Demo: Load 9 real cars</button>
         </div>
-        <div class="muted" id="buildInfo"></div>
+        <!-- build label moved to footer; keep an empty span to preserve layout if needed -->
+        <div class="muted" id="buildInfoHeader" style="visibility:hidden"> </div>
       </div>
 
       <!-- Cars table -->
-      <div class="cars-wrap" style="margin-top:12px;overflow:auto">
-        <table class="cars-table">
+      <div style="margin-top:12px;overflow:auto">
+        <table>
           <thead>
             <tr>
-              <th class="col-num">#</th>
-              <th class="col-year">Year</th>
-              <th class="col-make">Make</th>
-              <th class="col-model">Model</th>
-              <th class="col-height">Height (ft)</th>
-              <th class="col-weight">Weight (lbs)</th>
-              <th class="col-remove"></th>
+              <th style="width:44px">#</th>
+              <th style="width:120px">Year</th>
+              <th style="width:180px">Make</th>
+              <th style="width:200px">Model</th>
+              <th style="width:140px">Height (ft)</th>
+              <th style="width:140px">Weight (lbs)</th>
+              <th style="width:68px"></th>
             </tr>
           </thead>
           <tbody id="carsTbody"></tbody>
@@ -174,8 +154,8 @@
       <div class="card" style="flex:1 1 520px">
         <div class="section-title">Truck / Trailer Profile</div>
         <div class="grid2">
-          <div><label class="muted">Tractor weight (lbs)</label><input id="tractorWeight" type="number" /></div>
-          <div><label class="muted">Trailer weight (lbs)</label><input id="trailerWeight" type="number" /></div>
+          <div><label class="muted">Tractor weight (lbs)</label><input id="tractorWeight" type="number"/></div>
+          <div><label class="muted">Trailer weight (lbs)</label><input id="trailerWeight" type="number"/></div>
           <div><label class="muted">Deck height (ft)</label><input id="deckHeight" type="number" step="0.01"/></div>
           <div><label class="muted">Weight per axle (lbs)</label><input id="axleWeight" type="number"/></div>
           <div><label class="muted">Truck length (ft)</label><input id="truckLength" type="number" step="0.1"/></div>
@@ -216,7 +196,7 @@
 
       <div class="card" style="margin-top:12px">
         <div class="section-title">Placement (slots)</div>
-        <table class="placement-table">
+        <table>
           <thead><tr><th>Slot</th><th>Vehicle</th><th>Spec</th></tr></thead>
           <tbody id="layoutBody"></tbody>
         </table>
@@ -230,11 +210,80 @@
     </div>
 
     <footer>
-      <span id="buildInfoFooter">1.0.0 (Test 1)</span>
+      <span id="buildInfo">1.0.0 (Test 1)</span>
     </footer>
+  </div>
+
+  <!-- Toasts + Sticky bar elements -->
+  <div id="toasts" aria-live="polite" aria-atomic="true"></div>
+  <div class="sticky-bar" id="stickyBar" role="region" aria-label="Quick actions">
+    <div class="info" id="stickyInfo">Ready to plan route</div>
+    <button id="planBtnSticky" class="btn primary">Plan Route</button>
   </div>
 
   <!-- Main app logic -->
   <script src="/static/app.js"></script>
+
+  <!-- Small enhancement layer: toasts + sticky bar; no app.js edits required -->
+  <script>
+  (function(){
+    // ----- Toasts -----
+    const bag = document.getElementById('toasts');
+    function toast(msg, kind='good', ms=2200){
+      const t = document.createElement('div'); t.className = 'toast ' + (kind||'');
+      t.textContent = msg; bag.appendChild(t);
+      setTimeout(()=>{ t.style.opacity=0; t.style.transform='translateY(6px)'; setTimeout(()=>t.remove(), 200); }, ms);
+    }
+    window.__toast = toast; // expose for app.js future use if needed
+
+    // Hook a few obvious actions for instant UX feedback
+    const byId = (id)=>document.getElementById(id);
+    const a = byId('addRow'), c = byId('clearRows'), d = byId('demoFill'), p = byId('planBtn');
+    if(a) a.addEventListener('click', ()=>toast('Added a car row'));
+    if(c) c.addEventListener('click', ()=>toast('Cleared rows','bad'));
+    if(d) d.addEventListener('click', ()=>toast('Loaded demo vehicles'));
+
+    // Mirror status changes (from app.js) into toasts
+    const statusEl = byId('status');
+    if(statusEl){
+      new MutationObserver(()=> {
+        const s = (statusEl.textContent||'').trim().toLowerCase();
+        if(s === 'done') toast('Route planned');
+        else if(s === 'failed') toast('Planning failed','bad');
+      }).observe(statusEl,{childList:true,subtree:true});
+    }
+
+    // ----- Sticky Plan Bar (mobile) -----
+    const sticky = byId('stickyBar');
+    const stickyInfo = byId('stickyInfo');
+    const stickyBtn = byId('planBtnSticky');
+
+    // Use IntersectionObserver to show sticky bar only when the main Plan button is out of view
+    if(p && 'IntersectionObserver' in window){
+      const io = new IntersectionObserver(([entry])=>{
+        document.body.classList.toggle('show-sticky', !entry.isIntersecting);
+      }, { root:null, threshold:0 });
+      io.observe(p);
+    }
+
+    // Keep sticky info in sync with totals (if available)
+    const totals = byId('totals');
+    if(totals){
+      new MutationObserver(()=> {
+        const txt = totals.textContent.trim();
+        stickyInfo.textContent = txt ? txt.replace(/\s+/g,' ') : 'Ready to plan route';
+      }).observe(totals,{childList:true,subtree:true,characterData:true});
+    }
+
+    // Make sticky button trigger the real Plan button (so we don’t import app.js functions)
+    if(stickyBtn && p) stickyBtn.addEventListener('click', ()=>p.click());
+
+    // Build label: if /static/build.json exists, show it in the footer
+    fetch('/static/build.json').then(r=>r.json()).then(b=>{
+      const el = byId('buildInfo');
+      if(el) el.textContent = `${b.version || '1.0.0'} ${b.commit ? '('+b.commit.substring(0,7)+')' : ''}`;
+    }).catch(()=>{});
+  })();
+  </script>
 </body>
 </html>
