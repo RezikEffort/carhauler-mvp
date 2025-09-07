@@ -175,7 +175,7 @@ async function loadMakes(selectEl, year = null, { signal } = {}) {
     const makes = Array.isArray(data) ? data : (data.makes ?? data.options ?? data.data ?? []);
     if (signal?.aborted) return;
     // Rebuild options (keep select enabled)
-    const opts = ['<option value="">Select make…</option>'];
+    const opts = ['<option value="">Select make</option>'];
     for (const m of makes) opts.push(`<option value="${m}">${m}</option>`);
     selectEl.innerHTML = opts.join("");
   } catch (e) {
@@ -184,12 +184,12 @@ async function loadMakes(selectEl, year = null, { signal } = {}) {
     setSelectError(selectEl, "Failed — retry");
     return;
   } finally {
-    if (!signal?.aborted) clearSelectLoading(selectEl, "Select make…");
+    if (!signal?.aborted) clearSelectLoading(selectEl, "Select make");
   }
 }
 
 async function loadModels(selectEl, year, make, { signal } = {}) {
-  selectEl.innerHTML = `<option value="">Select model…</option>`;
+  selectEl.innerHTML = `<option value="">Select model</option>`;
   if (!make) return;
   setSelectLoading(selectEl, "Loading models…");
   const url =
@@ -200,7 +200,7 @@ async function loadModels(selectEl, year, make, { signal } = {}) {
     const data = await getJSON(url, { signal });
     const models = Array.isArray(data) ? data : (data.models ?? data.options ?? data.data ?? []);
     if (signal?.aborted) return;
-    const opts = ['<option value="">Select model…</option>'];
+    const opts = ['<option value="">Select model</option>'];
     for (const m of models) opts.push(`<option value="${m}">${m}</option>`);
     selectEl.innerHTML = opts.join("");
   } catch (e) {
@@ -209,7 +209,7 @@ async function loadModels(selectEl, year, make, { signal } = {}) {
     setSelectError(selectEl, "Failed — retry");
     return;
   } finally {
-    if (!signal?.aborted) clearSelectLoading(selectEl, "Select model…");
+    if (!signal?.aborted) clearSelectLoading(selectEl, "Select model");
   }
 }
 
@@ -291,7 +291,7 @@ window.onYearChanged = async (sel) => {
   const wIn = tr.querySelector("input.weight");
 
   // Clear model + specs on year change
-  modelSel.innerHTML = `<option value="">Select model…</option>`;
+  modelSel.innerHTML = `<option value="">Select model</option>`;
   hIn.value = ""; wIn.value = ""; clearSpecChip(tr);
 
   // Abort any in-flight loads and start fresh
@@ -315,7 +315,7 @@ window.onMakeChanged = async (sel) => {
   const hIn = tr.querySelector("input.height");
   const wIn = tr.querySelector("input.weight");
 
-  modelSel.innerHTML = `<option value="">Select model…</option>`;
+  modelSel.innerHTML = `<option value="">Select model</option>`;
   hIn.value = ""; wIn.value = ""; clearSpecChip(tr);
 
   const year = parseInt(yearSel.value, 10);
@@ -478,7 +478,7 @@ function rowTpl(idx, car = {}) {
   const w = car.weight_lbs ?? "";
 
   const yearOpts =
-    ['<option value="">Select year…</option>']
+    ['<option value="">Select year</option>']
       .concat(yearsList().map((y) => `<option value="${y}" ${y == year ? "selected" : ""}>${y}</option>`))
       .join("");
 
@@ -497,7 +497,7 @@ function rowTpl(idx, car = {}) {
       <td>
         <div class="select-wrap">
           <select class="make select-light" aria-label="Make" onchange="onMakeChanged(this)">
-            ${make ? `<option value="${make}" selected>${make}</option>` : `<option value="">Select make…</option>`}
+            ${make ? `<option value="${make}" selected>${make}</option>` : `<option value="">Select make</option>`}
           </select>
         </div>
       </td>
@@ -505,7 +505,7 @@ function rowTpl(idx, car = {}) {
       <td>
         <div class="select-wrap">
           <select class="model select-light" aria-label="Model" onchange="onModelChanged(this)">
-            ${model ? `<option value="${model}" selected>${model}</option>` : `<option value="">Select model…</option>`}
+            ${model ? `<option value="${model}" selected>${model}</option>` : `<option value="">Select model</option>`}
           </select>
         </div>
       </td>

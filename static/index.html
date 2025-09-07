@@ -5,59 +5,47 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Car Hauler Planner</title>
 
-  <!-- Leaflet (map) -->
+  <!-- Leaflet (for the map) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <style>
-    :root{
-      --bg:#0f172a; --card:#0b1220; --muted:#94a3b8; --line:#1f2937; --text:#e5e7eb; --accent:#2563eb;
-      --radius-lg:14px;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-
+    :root { --bg:#0f172a; --card:#0b1220; --muted:#94a3b8; --line:#1f2937; --text:#e5e7eb; --accent:#2563eb; }
+    *{box-sizing:border-box} html,body{height:100%} body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
     .container{max-width:1200px;margin:32px auto;padding:0 16px}
-    h1{margin:0 0 12px;font-size:clamp(20px,2.4vw,28px)}
+    h1{margin:0 0 12px;font-size:22px}
     .row{display:flex;gap:12px;flex-wrap:wrap}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-lg);padding:14px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
     .toolbar{display:flex;gap:8px;align-items:center}
     .btn{border:1px solid var(--line);background:#101828;color:var(--text);padding:8px 10px;border-radius:8px;cursor:pointer}
-    .btn.primary{background:linear-gradient(180deg,#2b66ef,#2057d8);border-color:#1d4ed8}
+    .btn.primary{background:var(--accent);border-color:#1d4ed8}
     .btn.small{padding:6px 8px;font-size:12px}
     .muted{color:var(--muted)}
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     input,select{background:#0a1222;border:1px solid #253045;color:var(--text);padding:8px 10px;border-radius:8px;width:100%}
-    input:focus,select:focus,.btn:focus{outline:none;box-shadow:0 0 0 2px rgba(37,99,235,.35)}
-    table{width:100%;border-collapse:collapse;table-layout:auto}
-    th,td{border-bottom:1px solid #1f2937;padding:9px;text-align:left}
+    table{width:100%;border-collapse:collapse}
+    th,td{border-bottom:1px solid #1f2937;padding:8px;text-align:left}
     th{font-weight:600;color:#cbd5e1}
-    #map{height:360px;border:1px solid #1f2937;border-radius:12px}
-
-    /* Spinner hook used by app.js */
-    .select-wrap{position:relative}
-    .select-wrap.is-loading:after{
-      content:"";width:12px;height:12px;border:2px solid #93c5fd;border-top-color:transparent;border-radius:50%;
-      display:inline-block;margin-left:6px;animation:spin .8s linear infinite;vertical-align:middle
-    }
+    .select-wrap.is-loading:after{content:"";width:12px;height:12px;border:2px solid #93c5fd;border-top-color:transparent;border-radius:50%;display:inline-block;margin-left:6px;animation:spin .8s linear infinite;vertical-align:middle}
     @keyframes spin{to{transform:rotate(360deg)}}
-
+    #map{height:360px;border:1px solid #1f2937;border-radius:12px}
+    .pill{display:inline-block;padding:2px 6px;border-radius:999px;background:#22314d;color:#cfe1ff;font-size:11px}
+    .badge{padding:2px 6px;border-radius:6px;font-size:11px;border:1px solid #24324e}
+    .badge-ok{background:#0f3b1d;color:#b7f3cb;border-color:#195a30}
+    .badge-warn{background:#43220f;color:#ffd9a8;border-color:#6b3a15}
+    .badge-unknown{background:#1f2937;color:#cbd5e1}
+    .ok{color:#b7f3cb}
+    .warning{color:#ffd9a8}
     .section-title{margin:6px 0 10px 0;font-size:16px}
 
-    /* ---------- MOBILE TWEAKS ---------- */
-    @media (max-width:640px){
-      .container{margin:20px auto}
-      th,td{padding:10px}                  /* airier again */
-      /* Hide long hints on small screens */
-      .hint{display:none}
-      /* Icon-only Remove on mobile */
-      .btn-remove .label{display:none !important}
-      .btn-remove{width:42px;min-width:42px;justify-content:center;padding:6px 0}
-      /* Prevent “two-letter” clamp in selects */
-      select.year{min-width:92px}
-      select.make{min-width:170px}
-      select.model{min-width:180px}
+    /* --- FIX #2: force Route + Profile side-by-side on desktop --- */
+    .row.duo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 900px) { .row.duo { grid-template-columns: 1fr; } }
+
+    /* Optional: keep "Remove" text hidden on mobile, show icon-only */
+    @media (max-width: 640px) {
+      .btn-remove .label { display:none !important; }
+      .btn-remove { width:42px; min-width:42px; justify-content:center; padding:6px 0; }
     }
   </style>
 </head>
@@ -77,17 +65,17 @@
       </div>
 
       <!-- Cars table -->
-      <div class="cars-table-wrap" style="margin-top:12px;overflow:auto">
+      <div style="margin-top:12px;overflow:auto">
         <table>
           <thead>
             <tr>
-              <th style="width:44px">#</th>
+              <th style="width:36px">#</th>
               <th style="width:120px">Year</th>
               <th style="width:180px">Make</th>
               <th style="width:200px">Model</th>
               <th style="width:140px">Height (ft)</th>
               <th style="width:140px">Weight (lbs)</th>
-              <th style="width:68px"></th>
+              <th style="width:120px"></th>
             </tr>
           </thead>
           <tbody id="carsTbody"></tbody>
@@ -96,16 +84,16 @@
     </div>
 
     <!-- Route + profile -->
-    <div class="row" style="margin-top:12px">
+    <div class="row duo" style="margin-top:12px"><!-- added .duo -->
       <div class="card" style="flex:1 1 520px">
         <div class="section-title">Route</div>
         <div class="grid2">
           <div>
-            <label class="muted">Origin <span class="hint">(address or lat,lng)</span></label>
+            <label class="muted">Origin (address or lat,lng)</label>
             <input id="origin" placeholder="e.g., 505 N Michigan Ave, Chicago IL or 41.89,-87.62"/>
           </div>
           <div>
-            <label class="muted">Destination <span class="hint">(address or lat,lng)</span></label>
+            <label class="muted">Destination (address or lat,lng)</label>
             <input id="destination" placeholder="e.g., 1 Ferry Building, San Francisco CA"/>
           </div>
         </div>
@@ -119,8 +107,8 @@
       <div class="card" style="flex:1 1 520px">
         <div class="section-title">Truck / Trailer Profile</div>
         <div class="grid2">
-          <div><label class="muted">Tractor weight (lbs)</label><input id="tractorWeight" type="number"/></div>
-          <div><label class="muted">Trailer weight (lbs)</label><input id="trailerWeight" type="number"/></div>
+          <div><label class="muted">Tractor weight (lbs)</label><input id="tractorWeight" type="number" /></div>
+          <div><label class="muted">Trailer weight (lbs)</label><input id="trailerWeight" type="number" /></div>
           <div><label class="muted">Deck height (ft)</label><input id="deckHeight" type="number" step="0.01"/></div>
           <div><label class="muted">Weight per axle (lbs)</label><input id="axleWeight" type="number"/></div>
           <div><label class="muted">Truck length (ft)</label><input id="truckLength" type="number" step="0.1"/></div>
@@ -163,7 +151,7 @@
         <div class="section-title">Placement (slots)</div>
         <table>
           <thead><tr><th>Slot</th><th>Vehicle</th><th>Spec</th></tr></thead>
-        <tbody id="layoutBody"></tbody>
+          <tbody id="layoutBody"></tbody>
         </table>
       </div>
     </div>
@@ -173,13 +161,10 @@
       &nbsp;&nbsp;|&nbsp;&nbsp;
       <a id="feedbackFooterLink" href="#" class="muted">Open form</a>
     </div>
-
-    <footer style="text-align:center;margin:18px 0" class="muted">
-      <span id="buildInfo">1.0.0 (Test 1)</span>
-    </footer>
   </div>
 
-  <!-- Main app logic (no search overlay; pure native dropdowns) -->
+  <!-- Main app logic -->
+  <!-- FIX #1: cache-bust so updated placeholders (no dots) load -->
   <script src="/static/app.js"></script>
 </body>
 </html>
