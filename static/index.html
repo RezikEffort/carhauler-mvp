@@ -11,7 +11,9 @@
 
   <style>
     :root { --bg:#0f172a; --card:#0b1220; --muted:#94a3b8; --line:#1f2937; --text:#e5e7eb; --accent:#2563eb; }
-    *{box-sizing:border-box} html,body{height:100%} body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
     .container{max-width:1200px;margin:32px auto;padding:0 16px}
     h1{margin:0 0 12px;font-size:22px}
     .row{display:flex;gap:12px;flex-wrap:wrap}
@@ -37,6 +39,40 @@
     .ok{color:#b7f3cb}
     .warning{color:#ffd9a8}
     .section-title{margin:6px 0 10px 0;font-size:16px}
+
+    /* === Mobile polish (≤640px) ===================================== */
+    @media (max-width: 640px) {
+      /* Horizontal scroll for the cars table instead of squishing */
+      .table-scroll {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      .table-scroll table {
+        min-width: 880px; /* tune if you add/remove columns */
+      }
+
+      /* Touch-friendly controls */
+      select,
+      input[type="number"],
+      input[type="text"],
+      button {
+        width: 100%;
+        min-height: 44px; /* comfortable tap target */
+      }
+
+      /* Tighten table cell padding on mobile */
+      th, td { padding: 6px 8px; }
+
+      /* Optionally hide the index column on small screens */
+      thead th:first-child,
+      tbody td:first-child { display: none; }
+
+      /* Map height responsive to mobile viewport */
+      #map {
+        min-height: 260px;
+        height: calc(var(--vh, 1vh) * 45); /* ~45vh using JS var below */
+      }
+    }
   </style>
 </head>
 <body>
@@ -55,8 +91,8 @@
       </div>
 
       <!-- Cars table -->
-      <div style="margin-top:12px;overflow:auto">
-        <table>
+      <div class="table-scroll" style="margin-top:12px;">
+        <table class="cars-table">
           <thead>
             <tr>
               <th style="width:36px">#</th>
@@ -152,6 +188,21 @@
       <a id="feedbackFooterLink" href="#" class="muted">Open form</a>
     </div>
   </div>
+
+  <!-- Mobile viewport & map resize fix -->
+  <script>
+    // Fix mobile 100vh (iOS) and keep Leaflet map sized on rotate/resize
+    function setVhVar() {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    }
+    function invalidateMap() {
+      try { if (window.MAP && typeof window.MAP.invalidateSize === 'function') window.MAP.invalidateSize(true); } catch (_) {}
+    }
+    window.addEventListener('resize', () => { setVhVar(); invalidateMap(); });
+    window.addEventListener('orientationchange', () => { setVhVar(); invalidateMap(); });
+    document.addEventListener('DOMContentLoaded', setVhVar);
+  </script>
 
   <!-- Main app logic -->
   <script src="/static/app.js"></script>
