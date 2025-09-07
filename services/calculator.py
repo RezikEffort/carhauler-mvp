@@ -1,9 +1,14 @@
 # services/calculator.py
 from typing import List, Dict, Any, Tuple
 
-# Simple global limits (guideline)
+# ------------------ Limits & constants ------------------
+# Your existing guideline constants
 MAX_HEIGHT_FEET = 13.5  # 13'6" guideline
 MAX_WEIGHT_LBS = 80000  # typical US GVW cap (varies by state/permit)
+
+# Added explicit DOT-style labels to satisfy tests that look for the phrase
+FEDERAL_GROSS_LIMIT_LBS = MAX_WEIGHT_LBS     # alias used in warning text
+LEGAL_MAX_HEIGHT_FT = MAX_HEIGHT_FEET        # alias used in warning text
 
 # Model the upper deck rail/tilt offset conservatively
 UPPER_DECK_OFFSET_FT = 2.5
@@ -28,18 +33,50 @@ def calculate_load(
     trailer_height_ft: float,
     cars: List[Dict[str, Any]],
 ) -> Dict[str, Any]:
-    total_weight_lbs = truck_weight_lbs + trailer_weight_lbs + sum(c.get("weight_lbs", 0.0) for c in cars)
-    tallest_car_ft = max((c.get("height_ft", 0.0) for c in cars), default=0.0)
+    """
+    Returns aggregate totals + DOT-style warnings.
 
-    # naive overall height if everything were on a flat deck (not used for routing once we arrange)
-    naive_total_height_ft = trailer_height_ft + tallest_car_ft
+    total_height_ft := trailer deck height + tallest car height
+    (Your original naive_total_height_ft preserved for compatibility.)
+    """
+    # Robust numeric coercion
+    tw = float(truck_weight_lbs)
+    trw = float(trailer_weight_lbs)
+    deck_h = float(trailer_height_ft)
+
+    cars_weights = [float(c.get("weight_lbs", 0.0)) for c in (cars or [])]
+    cars_heights = [float(c.get("height_ft", 0.0)) for c in (cars or [])]
+
+    total_weight_lbs = tw + trw + sum(cars_weights)
+    tallest_car_ft = max(cars_heights, default=0.0)
+
+    # Your original field (kept)
+    naive_total_height_ft = deck_h + tallest_car_ft
+    # Field required by tests
+    total_height_ft = deck_h + tallest_car_ft
+
+    # Build warnings (ensure phrase "exceeds DOT limit" appears when over gross)
+    warnings: List[str] = []
+    if total_weight_lbs > FEDERAL_GROSS_LIMIT_LBS:
+        warnings.append(
+            f"Total weight {int(total_weight_lbs)} lbs exceeds DOT limit {FEDERAL_GROSS_LIMIT_LBS} lbs."
+        )
+    # Height warning (useful in UI; not required by tests but harmless)
+    if total_height_ft > LEGAL_MAX_HEIGHT_FT:
+        warnings.append(
+            f"Total height {total_height_ft:.2f} ft exceeds legal height {LEGAL_MAX_HEIGHT_FT} ft."
+        )
 
     return {
-        "truck_weight_lbs": truck_weight_lbs,
-        "trailer_weight_lbs": trailer_weight_lbs,
-        "trailer_height_ft": trailer_height_ft,
+        "truck_weight_lbs": tw,
+        "trailer_weight_lbs": trw,
+        "trailer_height_ft": deck_h,
         "total_weight_lbs": total_weight_lbs,
+        # kept from your original:
         "naive_total_height_ft": round(naive_total_height_ft, 2),
+        # new keys expected by tests:
+        "total_height_ft": round(total_height_ft, 2),
+        "warnings": warnings,
     }
 
 
@@ -65,7 +102,7 @@ def _greedy_arrange(
       lower_max_loaded_ft
       upper_max_loaded_ft
     """
-    cars_copy = [dict(c) for c in cars]  # don't mutate caller's cars
+    cars_copy = [dict(c) for c in (cars or [])]  # don't mutate caller's cars
 
     # Order: tallest first (breaking ties by heavier)
     cars_sorted = sorted(
@@ -139,7 +176,7 @@ def suggest_arrangement(
     computed_max = max(lower_max_ft, upper_max_ft or 0.0)
 
     warnings: List[str] = []
-    total_weight_lbs = truck_weight_lbs + trailer_weight_lbs + sum(c.get("weight_lbs", 0.0) for c in cars)
+    total_weight_lbs = float(truck_weight_lbs) + float(trailer_weight_lbs) + sum(float(c.get("weight_lbs", 0.0)) for c in (cars or []))
     if total_weight_lbs > max_weight_lbs:
         warnings.append(
             f"Total weight {total_weight_lbs:.0f} lbs exceeds common GVW cap of {max_weight_lbs:.0f} lbs without permits."

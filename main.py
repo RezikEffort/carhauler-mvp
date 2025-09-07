@@ -1,23 +1,26 @@
+# main.py
 import os
 from typing import Any, Dict, List, Optional, Tuple
 
-import requests
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
-
-from services.geocoding import geocode_address   # your fixed geocoder
-from services.analytics import log_event         # keep analytics
-
-from services.routing import (
-    plan_with_height_analysis,
-    feet_to_meters,
-    pounds_to_kg,
-)
-
 from dotenv import load_dotenv
+from api_specs import specs_router
+# main.py – add below your existing index() route
+from fastapi import HTTPException
+
+# Routers (ensure these files exist per the latest backend you added)
+from api_placement import router as placement_router
+from api_vehicle_options import options_router
+from api_specs import specs_router
+
+# Services
+from services.geocoding import geocode_address
+from services.analytics import log_event
+from services.routing import plan_with_height_analysis, feet_to_meters, pounds_to_kg
 
 # -----------------------------
 # Env / HERE key
@@ -27,7 +30,6 @@ load_dotenv()
 def _sanitize_key(k: Optional[str]) -> Optional[str]:
     if k is None:
         return None
-    # trim and collapse internal whitespace (paste artifacts)
     k = k.strip()
     return " ".join(k.split())
 
@@ -40,27 +42,44 @@ STATIC_DIR = os.path.join(APP_DIR, "static")
 # -----------------------------
 # FastAPI setup
 # -----------------------------
-app = FastAPI(title="Car Hauler Backend")
+app = FastAPI(title="Car Hauler Planner (MVP)")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # tighten for prod
+    allow_origins=["*"],   # tighten for prod
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Serve UI
+# Mount feature routers
+app.include_router(placement_router)   # /placement-plan
+app.include_router(options_router)     # /vehicle-options/*  (makes, models, vehicle-specs -> CarAPI Bodies v2)
+app.include_router(specs_router)  
+# /vehicle-specs      (legacy passthrough -> Bodies v2)
+
+
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-@app.get("/")
+# Serve UI
+@app.get("/", include_in_schema=False)
 def index():
-    index_html = os.path.join(STATIC_DIR, "index.html")
-    if os.path.exists(index_html):
-        return FileResponse(index_html)
-    return JSONResponse({"ok": True, "msg": "UI not found; static/index.html missing?"})
+    for fname in ("app.html", "index.html"):
+        f = os.path.join(STATIC_DIR, fname)
+        if os.path.exists(f):
+            return FileResponse(f)
+    return JSONResponse({"ok": True, "msg": "UI not found; put app.html or index.html in /static"})
 
-# Optional small health/debug (won’t affect UI)
+
+
+@app.get("/picker", include_in_schema=False)
+def picker():
+    f = os.path.join(STATIC_DIR, "picker.html")
+    if os.path.exists(f):
+        return FileResponse(f)
+    raise HTTPException(status_code=404, detail="picker.html not found")
+
+# Optional health/debug
 @app.get("/health")
 def health():
     return {"ok": True, "service": "carhauler", "routes": ["/plan-route"]}
@@ -119,7 +138,7 @@ def _try_parse_latlng(text: str) -> Optional[Tuple[float, float]]:
 def _resolve_place(text: str) -> Tuple[Tuple[float, float], str]:
     """
     Accepts either 'lat,lng' or a freeform address.
-    Uses your services.geocoding.geocode_address for addresses (US-biased).
+    Uses services.geocoding.geocode_address for addresses (US-biased).
     """
     pair = _try_parse_latlng(text)
     if pair:
@@ -133,8 +152,10 @@ def _resolve_place(text: str) -> Tuple[Tuple[float, float], str]:
 # -----------------------------
 # Simple load/height suggestion
 # -----------------------------
-SLOTS = ["LOWER_FRONT","LOWER_MID1","LOWER_MID2","LOWER_REAR","LOWER_TAIL",
-         "TOP_FRONT","TOP_MID1","TOP_MID2","TOP_REAR"]
+SLOTS = [
+    "LOWER_FRONT", "LOWER_MID1", "LOWER_MID2", "LOWER_REAR", "LOWER_TAIL",
+    "TOP_FRONT", "TOP_MID1", "TOP_MID2", "TOP_REAR"
+]
 MAX_CARS = 9
 
 def suggest_layout_and_heights(cars: List[CarIn], deck_height_ft: float) -> Dict[str, Any]:

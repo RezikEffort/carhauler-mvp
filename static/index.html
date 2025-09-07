@@ -1,602 +1,159 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>Car Hauler Planner (MVP)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-    crossorigin=""
-  />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Car Hauler Planner</title>
+
+  <!-- Leaflet (for the map) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
   <style>
-    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif; }
-    body { margin: 0; background: #0b1220; color: #e8eefc; }
-    .wrap { max-width: 1100px; margin: 0 auto; padding: 24px; }
-    h1 { margin: 0 0 8px; font-size: 28px; }
-    .sub { color: #9fb1d1; margin-bottom: 20px; }
-    .card { background: #111a2e; border: 1px solid #1b2948; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
-    label { font-size: 14px; color: #b8c7e6; display:block; margin-bottom: 6px; }
-    input, button {
-      background: #0f1730; color: #e8eefc; border: 1px solid #223358;
-      border-radius: 8px; padding: 10px 12px; font-size: 14px;
-    }
-    input:focus { outline: none; border-color: #3c6df4; }
-    .row { display: grid; grid-template-columns: repeat(12, 1fr); gap: 12px; }
-    .col-2{ grid-column: span 2; } .col-3{ grid-column: span 3; } .col-4{ grid-column: span 4; } .col-6{ grid-column: span 6; } .col-12{ grid-column: span 12; }
-    .btn { cursor: pointer; }
-    .btn-primary { background: #3c6df4; border-color: #3c6df4; }
-    .btn-ghost { background: transparent; border-color: #223358; color:#c7d5f3; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { border-bottom: 1px solid #1b2948; padding: 8px; font-size: 14px; }
-    th { text-align: left; color: #9fb1d1; }
-    .muted { color: #9fb1d1; }
-    .warning { color: #ffdf8d; }
-    .ok { color: #85f2a2; }
-    .pill { display:inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; border:1px solid #223358; }
-    .grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
-    .small { font-size: 12px; }
-    .right { text-align: right; }
-    .sep { height: 8px; }
-    .footer { color:#6f83ab; font-size:12px; margin-top:12px; }
-    #map { height:320px; border:1px solid #1b2948; border-radius:12px; margin-bottom:12px; }
-    .buttons-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-    /* ===== Cars table layout ===== */
-    .table-wrap{
-      width:100%;
-      overflow-x:auto;
-      -webkit-overflow-scrolling:touch;
-      position:relative;
-    }
-
-    /* Base remove button layout */
-    .btn-remove{ display:inline-flex; align-items:center; gap:8px; }
-
-    /* Icon-only everywhere (desktop + mobile) */
-    .btn-remove .label{ display:none !important; }
-    .btn-remove .icon{  display:inline-flex !important; }
-
-    /* Destructive look, always visible */
-    .btn-remove .icon{
-      width:32px; height:32px;
-      border-radius:999px;
-      background:#ff4d6d;     /* bright red */
-      border:1px solid #ff4d6d;
-      color:#0b1220;          /* dark minus */
-      align-items:center; justify-content:center;
-      box-shadow: 0 0 0 0 rgba(255,77,109,0);
-      transition: transform .04s ease, box-shadow .15s ease, filter .15s ease;
-    }
-    .btn-remove:hover .icon,
-    .btn-remove:focus-visible .icon{
-      filter: brightness(1.05);
-      box-shadow: 0 0 0 3px rgba(255,77,109,.25);
-    }
-    .btn-remove:active .icon{ transform: scale(.96); }
-
-    /* Keep last column background consistent when sticky */
-    #carsTable th:nth-child(7),
-    #carsTable td:nth-child(7){
-      background:#111a2e; /* match .card */
-      z-index:5;
-    }
-
-    /* Table wrapper: only show horizontal scroll if truly needed */
-    .table-wrap{
-      width:100%;
-      overflow-x:auto;
-      -webkit-overflow-scrolling:touch;
-    }
-    .table-wrap table{ width:100%; border-collapse:collapse; }
-
-
-    #carsTable{
-      width:100%;
-      table-layout:fixed;     /* prevents random gaps & truncation */
-      border-collapse:collapse;
-    }
-
-    #carsTable th, #carsTable td{ padding:6px 8px; }
-    #carsTable th:first-child, #carsTable td:first-child{ text-align:center; }
-
-    /* column widths (desktop baseline) */
-    #carsTable .col-idx    { width:2.4rem; }  /* tighter: reduces gap before Make */
-    #carsTable .col-make   { width:18%;  }
-    #carsTable .col-model  { width:18%;  }
-    #carsTable .col-year   { width:12%;  min-width:96px;  }
-    #carsTable .col-h      { width:16%;  min-width:110px; }
-    #carsTable .col-w      { width:18%;  min-width:120px; }
-    #carsTable .col-remove { width:86px; }
-
-    #carsTable input{ width:100%; min-width:0; }
-
-    /* Remove button base (text + icon) */
-    .btn-remove{
-      display:inline-flex; align-items:center; gap:8px;
-    }
-    .btn-remove .icon{
-      display:none;                         /* shown on small screens below */
-      width:28px; height:28px;
-      border-radius:999px;
-      border:1px solid #223358;
-      background:#0f1730; color:#e8eefc;
-      align-items:center; justify-content:center;
-    }
-    .btn-remove .icon svg{ width:14px; height:14px; }
-    .btn-remove .label{ display:inline; }
-
-    /* === Make the Remove control clearly destructive & tappable === */
-    .btn-remove .icon{
-      /* base (idle) */
-      width:30px; height:30px;
-      background:#2a1218;        /* deep rose */
-      border-color:#7a2130;
-      color:#ff94a6;              /* rosy icon */
-      box-shadow: 0 0 0 0 rgba(255,77,109,0);
-      transition: background .15s ease, color .15s ease, box-shadow .15s ease, transform .04s ease;
-    }
-
-    /* hover/focus (desktop & keyboards) */
-    @media (hover:hover) {
-      .btn-remove:hover .icon,
-      .btn-remove:focus-visible .icon{
-        background:#ff4d6d;      /* bright, obvious */
-        border-color:#ff4d6d;
-        color:#0b1220;           /* dark icon for contrast */
-        box-shadow: 0 0 0 3px rgba(255,77,109,.25);
-        transform: translateY(-1px);
-      }
-    }
-
-    /* active press */
-    .btn-remove:active .icon{ transform: scale(.96); }
-
-    /* keep the last column’s background consistent when sticky */
-    #carsTable th:nth-child(7),
-    #carsTable td:nth-child(7){
-      background:#111a2e;  /* match .card */
-    }
-
-
-
-    /* legality badges */
-    .badge { display:inline-block; padding:4px 10px; border-radius:999px; font-size:12px; border:1px solid #223358; margin-right:6px; }
-    .badge-ok { background:#12381f; color:#9ff0b0; border-color:#1d5a30; }
-    .badge-warn { background:#4a2a00; color:#ffd89a; border-color:#7a4a00; }
-    .badge-unknown { background:#1d2744; color:#b7c4e8; border-color:#2a3a66; }
-    .feedback-fab {
-      position: fixed;
-      right: 18px;
-      bottom: 18px;
-      background: #3c6df4;
-      border: 1px solid #3c6df4;
-      color: #e8eefc;
-      padding: 12px 14px;
-      border-radius: 999px;
-      cursor: pointer;
-      font-size: 14px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
-      z-index: 9999;
-    }
-    .feedback-fab:hover { filter: brightness(1.06); }
-
-    /* === Desktop spacing for the Remove column === */
-    @media (min-width: 641px) {
-      /* give the last column breathing room and a separator */
-      #carsTable th:last-child,
-      #carsTable td:last-child {
-        width: 96px;               /* fixed width = gap from Weight */
-        padding-left: 16px;        /* pushes icon away from Weight */
-        padding-right: 12px;
-        text-align: center;
-        border-left: 1px solid #1b2948;  /* subtle divider */
-      }
-
-      /* slightly larger target + a touch of space */
-      #carsTable td:last-child .icon-btn {
-        width: 36px;
-        height: 36px;
-        margin-left: 4px;
-      }
-    }
-
-
-    /* ===== Mobile fixes (iPhone) ===== */
-    @media (max-width: 640px) {
-      /* 1) DO NOT stick the Remove column on mobile */
-      #carsTable th:last-child,
-      #carsTable td:last-child {
-        position: static !important;     /* cancel sticky */
-        right: auto !important;
-        background: transparent !important;
-        box-shadow: none !important;
-        width: auto !important;
-        padding-left: 8px;                /* small breathing room */
-        padding-right: 8px;
-        text-align: right;
-        z-index: auto;
-      }
-
-      /* 2) Hide the floating feedback pill on phones;
-            users will still have the footer "Give feedback" link */
-      .feedback-fab { display: none !important; }
-    }
-
+    :root { --bg:#0f172a; --card:#0b1220; --muted:#94a3b8; --line:#1f2937; --text:#e5e7eb; --accent:#2563eb; }
+    *{box-sizing:border-box} html,body{height:100%} body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    .container{max-width:1200px;margin:32px auto;padding:0 16px}
+    h1{margin:0 0 12px;font-size:22px}
+    .row{display:flex;gap:12px;flex-wrap:wrap}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+    .toolbar{display:flex;gap:8px;align-items:center}
+    .btn{border:1px solid var(--line);background:#101828;color:var(--text);padding:8px 10px;border-radius:8px;cursor:pointer}
+    .btn.primary{background:var(--accent);border-color:#1d4ed8}
+    .btn.small{padding:6px 8px;font-size:12px}
+    .muted{color:var(--muted)}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    input,select{background:#0a1222;border:1px solid #253045;color:var(--text);padding:8px 10px;border-radius:8px;width:100%}
+    table{width:100%;border-collapse:collapse}
+    th,td{border-bottom:1px solid #1f2937;padding:8px;text-align:left}
+    th{font-weight:600;color:#cbd5e1}
+    .select-wrap.is-loading:after{content:"";width:12px;height:12px;border:2px solid #93c5fd;border-top-color:transparent;border-radius:50%;display:inline-block;margin-left:6px;animation:spin .8s linear infinite;vertical-align:middle}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    #map{height:360px;border:1px solid #1f2937;border-radius:12px}
+    .pill{display:inline-block;padding:2px 6px;border-radius:999px;background:#22314d;color:#cfe1ff;font-size:11px}
+    .badge{padding:2px 6px;border-radius:6px;font-size:11px;border:1px solid #24324e}
+    .badge-ok{background:#0f3b1d;color:#b7f3cb;border-color:#195a30}
+    .badge-warn{background:#43220f;color:#ffd9a8;border-color:#6b3a15}
+    .badge-unknown{background:#1f2937;color:#cbd5e1}
+    .ok{color:#b7f3cb}
+    .warning{color:#ffd9a8}
+    .section-title{margin:6px 0 10px 0;font-size:16px}
   </style>
-
-
-
-   <style id="mobile-overrides">
-  /* Keep sizing predictable everywhere */
-  *, *::before, *::after { box-sizing: border-box; }
-
-  /* Compact inputs (used in the Cars table) */
-  .compact-input { padding: 8px 10px; font-size: 14px; }
-
-  @media (max-width: 640px) {
-    /* JS toggles this class so desktop stays unchanged */
-    body.is-mobile .wrap { padding: 14px; }
-    body.is-mobile .row { grid-template-columns: 1fr !important; gap: 10px; }
-    body.is-mobile .row > div { min-width: 0; } /* avoid overflow of grid children */
-
-    /* Make every input/button full-width on mobile for clean stacking */
-    body.is-mobile input,
-    body.is-mobile button { width: 100%; font-size: 16px !important; } /* prevent iOS zoom */
-
-    /* Truck & Trailer card: ensure nothing overlaps */
-    body.is-mobile .card { overflow: hidden; }
-    body.is-mobile #truckLength,
-    body.is-mobile #truckWidth,
-    body.is-mobile #tractorWeight,
-    body.is-mobile #trailerWeight,
-    body.is-mobile #deckHeight,
-    body.is-mobile #axleWeight { max-width: 100%; }
-
-    /* Increase map height on phones */
-    body.is-mobile #map { height: 420px !important; }
-
-    /* Sticky action buttons with safe-area padding */
-    body.is-mobile .buttons-row {
-      position: sticky;
-      bottom: 0; left: 0; right: 0;
-      gap: 8px;
-      background: rgba(11,18,32,0.92);
-      padding: 8px env(safe-area-inset-right) calc(8px + env(safe-area-inset-bottom)) env(safe-area-inset-left);
-      border-top: 1px solid #1b2948;
-      backdrop-filter: saturate(1.1) blur(6px);
-      z-index: 30;
-    }
-    body.is-mobile .buttons-row .btn { flex: 1 1 auto; }
-
-    /* Give the results card bottom padding so sticky buttons don't cover content */
-    body.is-mobile #results { padding-bottom: 60px; }
-
-    /* --- Cars table: scrollable with sticky "Remove" column --- */
-    .table-wrap {
-      width: 100%;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-    .table-wrap table {
-      width: 100%;
-      border-collapse: collapse;
-      min-width: 760px; /* keeps columns readable; user can scroll */
-    }
-
-    /* Keep key columns wide enough to type comfortably */
-    #carsTable th:nth-child(2), #carsTable td:nth-child(2), /* Make  */
-    #carsTable th:nth-child(3), #carsTable td:nth-child(3)  /* Model */ { min-width: 140px; }
-    #carsTable th:nth-child(4), #carsTable td:nth-child(4)  /* Year  */ { min-width: 90px; }
-    #carsTable th:nth-child(5), #carsTable td:nth-child(5), /* Height*/
-    #carsTable th:nth-child(6), #carsTable td:nth-child(6)  /* Weight*/ { min-width: 120px; }
-    #carsTable th:nth-child(7), #carsTable td:nth-child(7)  /* Remove*/ { min-width: 110px; }
-
-    /* Sticky last column so "Remove" stays visible while scrolling horizontally */
-    #carsTable th:nth-child(7),
-    #carsTable td:nth-child(7) {
-      position: sticky;
-      right: 0;
-      background: #111a2e;            /* match card bg */
-      z-index: 5;                      /* sit above cells behind */
-      box-shadow: -1px 0 0 #1b2948 inset; /* subtle left separator */
-      white-space: nowrap;
-    }
-
-    /* Reduce cell padding on small screens */
-    #carsTable th, #carsTable td { padding: 6px; }
-
-    /* Inputs in the table shouldn’t overflow their cells */
-    #carsTable input { width: 100%; min-width: 110px; }
-  }
-
-
-
-    /* === FIX PACK: responsive grid + inputs + cars table === */
-
-  /* inputs should fill their grid cell so they don't overflow on narrow screens */
-  .row input { width: 100%; }
-
-  /* Make the header bars in cards wrap nicely on small screens (no overflow) */
-  .card > div[style*="display:flex"] {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  /* Cars table: consistent column sizing + allow horizontal scroll */
-  .table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  #carsTable { width: 100%; border-collapse: collapse; table-layout: fixed; }
-
-  /* Sensible minimum widths so fields stay usable */
-  #carsTable th:nth-child(2), #carsTable td:nth-child(2),  /* Make  */
-  #carsTable th:nth-child(3), #carsTable td:nth-child(3) { /* Model */ min-width: 140px; }
-  #carsTable th:nth-child(4), #carsTable td:nth-child(4) { /* Year  */ min-width: 90px;  }
-  #carsTable th:nth-child(5), #carsTable td:nth-child(5),  /* Height */
-  #carsTable th:nth-child(6), #carsTable td:nth-child(6) { /* Weight */ min-width: 120px; }
-  #carsTable th:nth-child(7), #carsTable td:nth-child(7) { /* Remove */ min-width: 110px; }
-
-  /* keep the Remove column visible and inside the card on phones */
-  #carsTable th:nth-child(7),
-  #carsTable td:nth-child(7) {
-    position: sticky;
-    right: 0;
-    background: #111a2e;           /* match .card bg */
-    z-index: 5;
-    box-shadow: -1px 0 0 #1b2948 inset; /* subtle left divider */
-    white-space: nowrap;
-  }
-
-  /* make the Remove buttons compact on phones */
-  #carsTable td:last-child .btn {
-    padding: 7px 10px;
-  }
-
-  /* slightly tighter inputs for mobile so rows breathe better */
-  #carsTable input {
-    padding: 8px 10px;
-  }
-
-
-  /* Pure CSS fallbacks so we don't rely only on the JS body.is-mobile flag */
-  @media (max-width: 900px) {
-    .row { grid-template-columns: 1fr 1fr; }  /* two columns tablet-ish */
-    .col-6 { grid-column: span 2; }
-    .col-4 { grid-column: span 2; }
-    .col-3 { grid-column: span 1; }           /* 2-up rows will auto-wrap */
-  }
-
-  @media (max-width: 640px) {
-    .row { grid-template-columns: 1fr !important; }
-    .row > [class^="col-"] { grid-column: 1 / -1 !important; }
-    /* taller map, and sticky action buttons (already in your CSS, keeping here for clarity) */
-    #map { height: 420px !important; }
-    .buttons-row {
-      position: sticky;
-      bottom: 0; left: 0; right: 0;
-      gap: 8px;
-      background: rgba(11,18,32,0.92);
-      padding: 8px;
-      border-top: 1px solid #1b2948;
-      backdrop-filter: saturate(1.1) blur(6px);
-      z-index: 30;
-    }
-    .buttons-row .btn { flex: 1 1 auto; }
-    /* prevent iOS zoom-on-focus */
-    input, button { font-size: 16px !important; }
-  }
-  /* give sticky column breathing room and nudge it left a bit */
-  body.is-mobile .table-wrap { padding-right: 14px; }
-
-  body.is-mobile #carsTable th:nth-child(7),
-  body.is-mobile #carsTable td:nth-child(7) {
-    right: 6px;                   /* not glued to the edge */
-    background: #111a2e;
-    z-index: 5;
-    box-shadow: -1px 0 0 #1b2948 inset;
-    white-space: nowrap;
-  }
-
-  /* icon-only remove button on phones */
-  body.is-mobile .btn-remove .label { display: none; }
-  body.is-mobile .btn-remove .icon  { display: inline-block; }
-
-  /* tighter, smaller table on phones */
-  body.is-mobile #carsTable th,
-  body.is-mobile #carsTable td { font-size: 13px; }
-
-  body.is-mobile #carsTable input {
-    font-size: 14px;
-    padding: 6px 8px;             /* tighter fields on mobile */
-  }
-
-  /* give Year a touch more space on phones */
-  body.is-mobile #carsTable .col-year { width: 14%; min-width: 88px; }
-
-  /* tighter table + more room for Year/Height/Weight on phones */
-  body.is-mobile #carsTable th,
-  body.is-mobile #carsTable td{ font-size:13px; }
-
-  body.is-mobile #carsTable .col-year { width:18%; min-width:100px; }
-  body.is-mobile #carsTable .col-h    { width:22%; min-width:120px; }
-  body.is-mobile #carsTable .col-w    { width:22%; min-width:120px; }
-
-  /* icon-only remove button on phones */
-  body.is-mobile .btn-remove .label{ display:none; }
-  body.is-mobile .btn-remove .icon{  display:inline-block; }
-
-  /* keep last column inside and visible while scrolling */
-  body.is-mobile .table-wrap{ padding-right:14px; }
-  body.is-mobile #carsTable th:nth-child(7),
-  body.is-mobile #carsTable td:nth-child(7){
-    position:sticky; right:6px;
-    background:#111a2e;
-    z-index:5;
-    box-shadow:-1px 0 0 #1b2948 inset;
-    white-space:nowrap;
-  }
-
-    /* make Year/Height/Weight readable on phones */
-  #carsTable th, #carsTable td{ font-size:13px; }
-  #carsTable .col-year { width:18%; min-width:100px; }
-  #carsTable .col-h    { width:22%; min-width:120px; }
-  #carsTable .col-w    { width:22%; min-width:120px; }
-
-  /* icon-only Remove on phones */
-  .btn-remove .label{ display:none; }
-  .btn-remove .icon{  display:inline-flex; }
-
-  /* keep Remove column visible while horizontal-scrolling on phones */
-  #carsTable th:nth-child(7),
-  #carsTable td:nth-child(7){
-    position: sticky;
-    right: 6px;
-    background: #111a2e;                      /* match .card background */
-    z-index: 5;
-    box-shadow: -1px 0 0 #1b2948 inset;       /* subtle left divider */
-    white-space: nowrap;
-  }
-
-
-
-</style>
-  
-
 </head>
 <body>
-  <div class="wrap">
+  <div class="container">
     <h1>Car Hauler Planner</h1>
-    <div class="sub">Enter pickup/dropoff and your cars. Defaults assume a stinger 9-car rig — edit below if needed.</div>
 
+    <!-- Controls -->
     <div class="card">
-      <div class="row">
-        <div class="col-6">
-          <label>Pickup (origin) <span class="small muted">address or lat,lng</span></label>
-          <input id="origin" placeholder="Baltimore, MD" value="Baltimore, MD" />
+      <div class="toolbar" style="justify-content:space-between;flex-wrap:wrap">
+        <div class="toolbar" style="gap:8px">
+          <button id="addRow" class="btn small">+ Add car</button>
+          <button id="clearRows" class="btn small">Clear</button>
+          <button id="demoFill" class="btn small">Demo: Load 9 real cars</button>
         </div>
-        <div class="col-6">
-          <label>Dropoff (destination) <span class="small muted">address or lat,lng</span></label>
-          <input id="destination" placeholder="New York, NY" value="New York, NY" />
-        </div>
-      </div>
-    </div>
-
-    <!-- Truck & Trailer profile -->
-    <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-        <strong>Truck &amp; Trailer</strong>
-        <div><button class="btn btn-ghost" id="resetProfile">Reset defaults</button></div>
-      </div>
-      <div class="row">
-        <div class="col-3"><label>Tractor empty weight (lbs)</label><input id="tractorWeight" type="number" step="1" /></div>
-        <div class="col-3"><label>Trailer empty weight (lbs)</label><input id="trailerWeight" type="number" step="1" /></div>
-        <div class="col-3"><label>Deck height (ft)</label><input id="deckHeight" type="number" step="0.01" /></div>
-        <div class="col-3"><label>Weight per axle (lbs)</label><input id="axleWeight" type="number" step="1" /></div>
-      </div>
-      <div class="sep"></div>
-      <div class="row">
-        <div class="col-3"><label>Total length (ft)</label><input id="truckLength" type="number" step="0.1" /></div>
-        <div class="col-3"><label>Width (ft)</label><input id="truckWidth" type="number" step="0.1" /></div>
-        <div class="col-6 right"><label>&nbsp;</label><span class="small muted">Max cars shown below; won’t exceed 9 for this MVP.</span></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div><strong>Cars to haul</strong> <span class="small muted">(max 9)</span></div>
-        <div>
-      <div>
-        <button class="btn btn-ghost" id="addRow">+ Add car</button>
-        <button class="btn btn-ghost" id="clearRows">Clear</button>
-        <button class="btn btn-ghost" id="demoFill">Demo: Load 9 real cars</button>
-      </div>
+        <div class="muted" id="buildInfo"></div>
       </div>
 
-      <!-- Wrap the table to control overflow only when needed -->
-      <div class="table-wrap">
-        <table id="carsTable">
+      <!-- Cars table -->
+      <div style="margin-top:12px;overflow:auto">
+        <table>
           <thead>
             <tr>
-              <th>#</th><th>Make</th><th>Model</th><th>Year</th><th>Height (ft)</th><th>Weight (lbs)</th><th></th>
+              <th style="width:36px">#</th>
+              <th style="width:120px">Year</th>
+              <th style="width:180px">Make</th>
+              <th style="width:200px">Model</th>
+              <th style="width:140px">Height (ft)</th>
+              <th style="width:140px">Weight (lbs)</th>
+              <th style="width:120px"></th>
             </tr>
           </thead>
           <tbody id="carsTbody"></tbody>
         </table>
       </div>
-
-
-
-
-
-    <div class="card">
-      <button class="btn btn-primary" id="planBtn">Plan Route</button>
-      <span id="status" class="small muted" style="margin-left:12px;"></span>
     </div>
 
-    <div id="results" class="card" style="display:none;">
-      <div><strong>Driver warnings</strong></div>
-      <ul id="warnings"></ul>
-
-      <div id="routeDelta" class="small muted" style="margin:6px 0 10px 0;"></div>
-      <div id="map"></div>
-
-      <div class="buttons-row">
-        <button class="btn btn-primary" id="openPrimary">Open PRIMARY in Google Maps</button>
-        <button class="btn btn-ghost" id="openAlternative" disabled>Open ALTERNATIVE in Google Maps</button>
-        <button id="openFallback" class="btn">Open Fallback in Google Maps</button>
-
-        <span class="small muted">Note: Google Maps can’t enforce truck height/weight. Use our warnings.</span>
-      </div>
-
-      <div id="routeResolved" class="small muted" style="margin-top:8px;"></div>
-
-      <!-- Legality badges + notes -->
-      <div id="legalityBadges" style="margin-top:10px;"></div>
-      <div id="legalityNotes"></div>
-
-      <div class="sep"></div>
-      <div class="grid-2">
-        <div>
-          <div><strong>Chosen route</strong></div>
-          <div id="chosenSummary" class="muted small"></div>
-          <div class="sep"></div>
-          <div><strong>Totals sent to HERE</strong></div>
-          <div id="totals" class="small"></div>
+    <!-- Route + profile -->
+    <div class="row" style="margin-top:12px">
+      <div class="card" style="flex:1 1 520px">
+        <div class="section-title">Route</div>
+        <div class="grid2">
+          <div>
+            <label class="muted">Origin (address or lat,lng)</label>
+            <input id="origin" placeholder="e.g., 505 N Michigan Ave, Chicago IL or 41.89,-87.62"/>
+          </div>
+          <div>
+            <label class="muted">Destination (address or lat,lng)</label>
+            <input id="destination" placeholder="e.g., 1 Ferry Building, San Francisco CA"/>
+          </div>
         </div>
-        <div>
-          <div><strong>Truck &amp; Trailer used</strong></div>
-          <div id="profileUsed" class="small"></div>
-          <div class="sep"></div>
-          <div><strong>Deck heights</strong></div>
-          <div id="decks" class="small"></div>
+
+        <div class="toolbar" style="margin-top:12px">
+          <button id="planBtn" class="btn primary">Plan Route</button>
+          <span id="status" class="muted"></span>
         </div>
       </div>
 
-      <div class="sep"></div>
-      <div>
-        <div><strong>Placement plan</strong> <span class="small muted">(slot → vehicle)</span></div>
+      <div class="card" style="flex:1 1 520px">
+        <div class="section-title">Truck / Trailer Profile</div>
+        <div class="grid2">
+          <div><label class="muted">Tractor weight (lbs)</label><input id="tractorWeight" type="number" /></div>
+          <div><label class="muted">Trailer weight (lbs)</label><input id="trailerWeight" type="number" /></div>
+          <div><label class="muted">Deck height (ft)</label><input id="deckHeight" type="number" step="0.01"/></div>
+          <div><label class="muted">Weight per axle (lbs)</label><input id="axleWeight" type="number"/></div>
+          <div><label class="muted">Truck length (ft)</label><input id="truckLength" type="number" step="0.1"/></div>
+          <div><label class="muted">Truck width (ft)</label><input id="truckWidth" type="number" step="0.1"/></div>
+        </div>
+        <div class="toolbar" style="margin-top:10px">
+          <button id="resetProfile" class="btn small">Reset defaults</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div id="results" class="card" style="margin-top:12px; display:none">
+      <div class="section-title">Results</div>
+
+      <div class="row" style="gap:16px">
+        <div class="card" style="flex:1 1 380px">
+          <div class="muted" id="routeResolved"></div>
+          <div id="map" style="margin-top:8px"></div>
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+            <button id="openPrimary" class="btn small">Open primary in Google Maps</button>
+            <button id="openAlternative" class="btn small">Open alternative</button>
+            <button id="openFallback" class="btn small">Open fallback</button>
+          </div>
+        </div>
+
+        <div class="card" style="flex:1 1 380px">
+          <div id="routeDelta" class="muted" style="margin-bottom:6px"></div>
+          <div id="totals" style="margin-bottom:8px"></div>
+          <div id="profileUsed" class="muted" style="margin-bottom:8px"></div>
+          <div id="decks" style="margin-bottom:8px"></div>
+          <div id="legalityBadges" style="margin-bottom:6px"></div>
+          <div id="legalityNotes"></div>
+          <div class="section-title" style="margin-top:10px">Warnings</div>
+          <ul id="warnings" style="margin:6px 0 0 14px"></ul>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <div class="section-title">Placement (slots)</div>
         <table>
-          <thead><tr><th>Slot</th><th>Vehicle</th><th>Specs</th></tr></thead>
+          <thead><tr><th>Slot</th><th>Vehicle</th><th>Spec</th></tr></thead>
           <tbody id="layoutBody"></tbody>
         </table>
       </div>
     </div>
 
-    <div class="footer">
-      Tip: edit the Truck &amp; Trailer section or hit “Reset defaults”. Addresses or lat,lng work for routing.
-      <br />
-      <span class="small muted">
-        Build: v0.1.0-beta · 
-        <a id="feedbackFooterLink" href="#" target="_blank" rel="noopener">Give feedback</a>
-      </span>
+    <div style="text-align:center;margin:16px 0" class="muted">
+      <button id="feedbackBtn" class="btn small">Send feedback</button>
+      &nbsp;&nbsp;|&nbsp;&nbsp;
+      <a id="feedbackFooterLink" href="#" class="muted">Open form</a>
     </div>
-  <!-- Floating Feedback Button -->
-  <button id="feedbackBtn" class="feedback-fab" title="Give feedback">Feedback</button>
+  </div>
 
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-    crossorigin=""
-  ></script>
+  <!-- Main app logic -->
   <script src="/static/app.js"></script>
 </body>
 </html>
