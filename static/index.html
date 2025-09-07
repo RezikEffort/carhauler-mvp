@@ -10,26 +10,18 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <style>
-    /* ---------------------------
-       Design tokens (light polish)
-    ---------------------------- */
     :root{
       --bg:#0f172a; --card:#0b1220; --muted:#94a3b8; --line:#1f2937; --text:#e5e7eb; --accent:#2563eb;
-      --radius-lg:14px; --radius-md:10px;
-      --shadow-1:0 6px 24px rgba(0,0,0,.28); --shadow-2:0 10px 40px rgba(0,0,0,.36);
-      --space-1:6px; --space-2:10px; --space-3:12px; --space-4:16px;
-      --fs-12:clamp(11px,.9vw,12px); --fs-13:clamp(12px,.95vw,13px); --fs-14:clamp(12px,1vw,14px); --fs-16:clamp(14px,1.2vw,16px);
+      --radius-lg:14px;
     }
-
     *{box-sizing:border-box}
     html,body{height:100%}
     body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
 
     .container{max-width:1200px;margin:32px auto;padding:0 16px}
-    h1{margin:0 0 12px;font-size:clamp(20px,2.4vw,28px);letter-spacing:.2px}
-
+    h1{margin:0 0 12px;font-size:clamp(20px,2.4vw,28px)}
     .row{display:flex;gap:12px;flex-wrap:wrap}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-lg);padding:14px;box-shadow:var(--shadow-1)}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-lg);padding:14px}
     .toolbar{display:flex;gap:8px;align-items:center}
     .btn{border:1px solid var(--line);background:#101828;color:var(--text);padding:8px 10px;border-radius:8px;cursor:pointer}
     .btn.primary{background:linear-gradient(180deg,#2b66ef,#2057d8);border-color:#1d4ed8}
@@ -38,61 +30,35 @@
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     input,select{background:#0a1222;border:1px solid #253045;color:var(--text);padding:8px 10px;border-radius:8px;width:100%}
     input:focus,select:focus,.btn:focus{outline:none;box-shadow:0 0 0 2px rgba(37,99,235,.35)}
-    table{width:100%;border-collapse:collapse}
-    th,td{border-bottom:1px solid #1f2937;padding:8px;text-align:left}
+    table{width:100%;border-collapse:collapse;table-layout:auto}
+    th,td{border-bottom:1px solid #1f2937;padding:9px;text-align:left}
     th{font-weight:600;color:#cbd5e1}
-    .select-wrap.is-loading:after{content:"";width:12px;height:12px;border:2px solid #93c5fd;border-top-color:transparent;border-radius:50%;display:inline-block;margin-left:6px;animation:spin .8s linear infinite;vertical-align:middle}
-    @keyframes spin{to{transform:rotate(360deg)}}
     #map{height:360px;border:1px solid #1f2937;border-radius:12px}
 
-    .pill{display:inline-block;padding:2px 6px;border-radius:999px;background:#22314d;color:#cfe1ff;font-size:11px}
-    .badge{padding:2px 6px;border-radius:6px;font-size:11px;border:1px solid #24324e}
-    .badge-ok{background:#0f3b1d;color:#b7f3cb;border-color:#195a30}
-    .badge-warn{background:#43220f;color:#ffd9a8;border-color:#6b3a15}
-    .badge-unknown{background:#1f2937;color:#cbd5e1}
-    .ok{color:#b7f3cb}.warning{color:#ffd9a8}
+    /* Spinner hook used by app.js */
+    .select-wrap{position:relative}
+    .select-wrap.is-loading:after{
+      content:"";width:12px;height:12px;border:2px solid #93c5fd;border-top-color:transparent;border-radius:50%;
+      display:inline-block;margin-left:6px;animation:spin .8s linear infinite;vertical-align:middle
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+
     .section-title{margin:6px 0 10px 0;font-size:16px}
 
-    /* Mobile table: reduce font & padding a hair for compactness */
+    /* ---------- MOBILE TWEAKS ---------- */
     @media (max-width:640px){
-      th,td{padding:7px}
-      body{font-size:var(--fs-14)}
       .container{margin:20px auto}
+      th,td{padding:10px}                  /* airier again */
+      /* Hide long hints on small screens */
+      .hint{display:none}
+      /* Icon-only Remove on mobile */
+      .btn-remove .label{display:none !important}
+      .btn-remove{width:42px;min-width:42px;justify-content:center;padding:6px 0}
+      /* Prevent “two-letter” clamp in selects */
+      select.year{min-width:92px}
+      select.make{min-width:170px}
+      select.model{min-width:180px}
     }
-
-    /* ---------------------------
-       Sticky Action Bar (mobile)
-    ---------------------------- */
-    .sticky-bar{
-      position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));
-      background:rgba(11,18,32,.92);backdrop-filter:blur(6px);
-      border:1px solid #22324a;border-radius:14px;box-shadow:var(--shadow-2);
-      padding:10px;display:none;align-items:center;justify-content:space-between;gap:10px;z-index:60;
-    }
-    .sticky-bar .info{font-size:var(--fs-12);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .sticky-bar .btn{padding:10px 14px}
-    @media (min-width:641px){ .sticky-bar{display:none!important} }   /* desktop never shows */
-    body.show-sticky .sticky-bar{display:flex}
-
-    /* ---------------------------
-       Toasts
-    ---------------------------- */
-    #toasts{
-      position:fixed;left:50%;transform:translateX(-50%);
-      bottom:calc(84px + env(safe-area-inset-bottom)); /* floats above sticky bar */
-      display:flex;flex-direction:column;gap:8px;z-index:70;pointer-events:none;
-    }
-    .toast{
-      pointer-events:auto; background:#0b1220;border:1px solid #23324b;color:#cfe1ff;
-      padding:10px 12px;border-radius:10px;box-shadow:var(--shadow-1);font-size:var(--fs-14);
-      opacity:0; transform:translateY(6px); animation:toastIn .16s ease forwards;
-    }
-    .toast.good{border-color:#195a30;color:#b7f3cb}
-    .toast.bad{border-color:#6b3a15;color:#ffd9a8}
-    @keyframes toastIn{to{opacity:1;transform:translateY(0)}}
-
-    /* Footer build label lives here nicely on mobile */
-    footer{margin:18px 0;text-align:center;font-size:var(--fs-12);color:var(--muted)}
   </style>
 </head>
 <body>
@@ -107,12 +73,11 @@
           <button id="clearRows" class="btn small">Clear</button>
           <button id="demoFill" class="btn small">Demo: Load 9 real cars</button>
         </div>
-        <!-- build label moved to footer; keep an empty span to preserve layout if needed -->
-        <div class="muted" id="buildInfoHeader" style="visibility:hidden"> </div>
+        <div class="muted" id="buildInfo"></div>
       </div>
 
       <!-- Cars table -->
-      <div style="margin-top:12px;overflow:auto">
+      <div class="cars-table-wrap" style="margin-top:12px;overflow:auto">
         <table>
           <thead>
             <tr>
@@ -136,11 +101,11 @@
         <div class="section-title">Route</div>
         <div class="grid2">
           <div>
-            <label class="muted">Origin (address or lat,lng)</label>
+            <label class="muted">Origin <span class="hint">(address or lat,lng)</span></label>
             <input id="origin" placeholder="e.g., 505 N Michigan Ave, Chicago IL or 41.89,-87.62"/>
           </div>
           <div>
-            <label class="muted">Destination (address or lat,lng)</label>
+            <label class="muted">Destination <span class="hint">(address or lat,lng)</span></label>
             <input id="destination" placeholder="e.g., 1 Ferry Building, San Francisco CA"/>
           </div>
         </div>
@@ -198,7 +163,7 @@
         <div class="section-title">Placement (slots)</div>
         <table>
           <thead><tr><th>Slot</th><th>Vehicle</th><th>Spec</th></tr></thead>
-          <tbody id="layoutBody"></tbody>
+        <tbody id="layoutBody"></tbody>
         </table>
       </div>
     </div>
@@ -209,81 +174,12 @@
       <a id="feedbackFooterLink" href="#" class="muted">Open form</a>
     </div>
 
-    <footer>
+    <footer style="text-align:center;margin:18px 0" class="muted">
       <span id="buildInfo">1.0.0 (Test 1)</span>
     </footer>
   </div>
 
-  <!-- Toasts + Sticky bar elements -->
-  <div id="toasts" aria-live="polite" aria-atomic="true"></div>
-  <div class="sticky-bar" id="stickyBar" role="region" aria-label="Quick actions">
-    <div class="info" id="stickyInfo">Ready to plan route</div>
-    <button id="planBtnSticky" class="btn primary">Plan Route</button>
-  </div>
-
-  <!-- Main app logic -->
+  <!-- Main app logic (no search overlay; pure native dropdowns) -->
   <script src="/static/app.js"></script>
-
-  <!-- Small enhancement layer: toasts + sticky bar; no app.js edits required -->
-  <script>
-  (function(){
-    // ----- Toasts -----
-    const bag = document.getElementById('toasts');
-    function toast(msg, kind='good', ms=2200){
-      const t = document.createElement('div'); t.className = 'toast ' + (kind||'');
-      t.textContent = msg; bag.appendChild(t);
-      setTimeout(()=>{ t.style.opacity=0; t.style.transform='translateY(6px)'; setTimeout(()=>t.remove(), 200); }, ms);
-    }
-    window.__toast = toast; // expose for app.js future use if needed
-
-    // Hook a few obvious actions for instant UX feedback
-    const byId = (id)=>document.getElementById(id);
-    const a = byId('addRow'), c = byId('clearRows'), d = byId('demoFill'), p = byId('planBtn');
-    if(a) a.addEventListener('click', ()=>toast('Added a car row'));
-    if(c) c.addEventListener('click', ()=>toast('Cleared rows','bad'));
-    if(d) d.addEventListener('click', ()=>toast('Loaded demo vehicles'));
-
-    // Mirror status changes (from app.js) into toasts
-    const statusEl = byId('status');
-    if(statusEl){
-      new MutationObserver(()=> {
-        const s = (statusEl.textContent||'').trim().toLowerCase();
-        if(s === 'done') toast('Route planned');
-        else if(s === 'failed') toast('Planning failed','bad');
-      }).observe(statusEl,{childList:true,subtree:true});
-    }
-
-    // ----- Sticky Plan Bar (mobile) -----
-    const sticky = byId('stickyBar');
-    const stickyInfo = byId('stickyInfo');
-    const stickyBtn = byId('planBtnSticky');
-
-    // Use IntersectionObserver to show sticky bar only when the main Plan button is out of view
-    if(p && 'IntersectionObserver' in window){
-      const io = new IntersectionObserver(([entry])=>{
-        document.body.classList.toggle('show-sticky', !entry.isIntersecting);
-      }, { root:null, threshold:0 });
-      io.observe(p);
-    }
-
-    // Keep sticky info in sync with totals (if available)
-    const totals = byId('totals');
-    if(totals){
-      new MutationObserver(()=> {
-        const txt = totals.textContent.trim();
-        stickyInfo.textContent = txt ? txt.replace(/\s+/g,' ') : 'Ready to plan route';
-      }).observe(totals,{childList:true,subtree:true,characterData:true});
-    }
-
-    // Make sticky button trigger the real Plan button (so we don’t import app.js functions)
-    if(stickyBtn && p) stickyBtn.addEventListener('click', ()=>p.click());
-
-    // Build label: if /static/build.json exists, show it in the footer
-    fetch('/static/build.json').then(r=>r.json()).then(b=>{
-      const el = byId('buildInfo');
-      if(el) el.textContent = `${b.version || '1.0.0'} ${b.commit ? '('+b.commit.substring(0,7)+')' : ''}`;
-    }).catch(()=>{});
-  })();
-  </script>
 </body>
 </html>
