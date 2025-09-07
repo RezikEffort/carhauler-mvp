@@ -11,7 +11,9 @@
 
   <style>
     :root { --bg:#0f172a; --card:#0b1220; --muted:#94a3b8; --line:#1f2937; --text:#e5e7eb; --accent:#2563eb; }
-    *{box-sizing:border-box} html,body{height:100%} body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
     .container{max-width:1200px;margin:32px auto;padding:0 16px}
     h1{margin:0 0 12px;font-size:22px}
     .row{display:flex;gap:12px;flex-wrap:wrap}
@@ -23,8 +25,9 @@
     .muted{color:var(--muted)}
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     input,select{background:#0a1222;border:1px solid #253045;color:var(--text);padding:8px 10px;border-radius:8px;width:100%}
+    select{max-width:100%;} /* never crop label text */
     table{width:100%;border-collapse:collapse}
-    th,td{border-bottom:1px solid #1f2937;padding:8px;text-align:left}
+    th,td{border-bottom:1px solid #1f2937;padding:8px;text-align:left;vertical-align:middle}
     th{font-weight:600;color:#cbd5e1}
     .select-wrap.is-loading:after{content:"";width:12px;height:12px;border:2px solid #93c5fd;border-top-color:transparent;border-radius:50%;display:inline-block;margin-left:6px;animation:spin .8s linear infinite;vertical-align:middle}
     @keyframes spin{to{transform:rotate(360deg)}}
@@ -38,15 +41,44 @@
     .warning{color:#ffd9a8}
     .section-title{margin:6px 0 10px 0;font-size:16px}
 
-    /* --- FIX #2: force Route + Profile side-by-side on desktop --- */
-    .row.duo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    @media (max-width: 900px) { .row.duo { grid-template-columns: 1fr; } }
+    /* --- Desktop table column hints (helps the min-width math below) --- */
+    thead th:nth-child(1){width:36px}
+    thead th:nth-child(2){width:120px}
+    thead th:nth-child(3){width:180px}
+    thead th:nth-child(4){width:200px}
+    thead th:nth-child(5){width:140px}
+    thead th:nth-child(6){width:140px}
+    thead th:nth-child(7){width:120px}
 
-    /* Optional: keep "Remove" text hidden on mobile, show icon-only */
-    @media (max-width: 640px) {
-      .btn-remove .label { display:none !important; }
-      .btn-remove { width:42px; min-width:42px; justify-content:center; padding:6px 0; }
+    /* --- Mobile-first fixes --- */
+    @media (max-width: 768px){
+      /* Force horizontal scroll for the cars table so selects never clamp */
+      .cars-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+      table.cars{min-width:980px} /* keeps Year/Make/Model roomy; scroll instead of clamp */
+      select.select-light{min-width:170px} /* each select stays readable */
+
+      /* Bigger height/weight inputs on phones */
+      input.height,input.weight{font-size:16px;font-weight:600}
+
+      /* Remove label text on the remove button, icon-only and smaller */
+      .btn-remove .label{display:none}
+      .btn-remove.small{padding:6px;width:40px;min-width:40px}
+
+      /* Shorter labels for addresses on phones */
+      .label-long{display:none}
+      .label-short{display:inline}
+
+      /* Keep the truck/trailer profile in 2 columns on phones (as requested) */
+      .grid2{grid-template-columns:1fr 1fr}
     }
+
+    /* Prevent accidental ellipsis inside selects across browsers */
+    select option, select{white-space:nowrap}
+
+    /* Footer (build / links) */
+    footer{display:flex;justify-content:center;gap:16px;margin:18px 0;color:var(--muted);font-size:12px}
+    footer a{color:var(--muted);text-decoration:none}
+    footer a:hover{color:#cbd5e1;text-decoration:underline}
   </style>
 </head>
 <body>
@@ -65,17 +97,17 @@
       </div>
 
       <!-- Cars table -->
-      <div style="margin-top:12px;overflow:auto">
-        <table>
+      <div class="cars-table-wrap" style="margin-top:12px">
+        <table class="cars">
           <thead>
             <tr>
-              <th style="width:36px">#</th>
-              <th style="width:120px">Year</th>
-              <th style="width:180px">Make</th>
-              <th style="width:200px">Model</th>
-              <th style="width:140px">Height (ft)</th>
-              <th style="width:140px">Weight (lbs)</th>
-              <th style="width:120px"></th>
+              <th>#</th>
+              <th>Year</th>
+              <th>Make</th>
+              <th>Model</th>
+              <th>Height (ft)</th>
+              <th>Weight (lbs)</th>
+              <th></th>
             </tr>
           </thead>
           <tbody id="carsTbody"></tbody>
@@ -84,16 +116,22 @@
     </div>
 
     <!-- Route + profile -->
-    <div class="row duo" style="margin-top:12px"><!-- added .duo -->
+    <div class="row" style="margin-top:12px">
       <div class="card" style="flex:1 1 520px">
         <div class="section-title">Route</div>
         <div class="grid2">
           <div>
-            <label class="muted">Origin (address or lat,lng)</label>
+            <label class="muted">
+              <span class="label-long">Origin (address or lat,lng)</span>
+              <span class="label-short" style="display:none">Origin</span>
+            </label>
             <input id="origin" placeholder="e.g., 505 N Michigan Ave, Chicago IL or 41.89,-87.62"/>
           </div>
           <div>
-            <label class="muted">Destination (address or lat,lng)</label>
+            <label class="muted">
+              <span class="label-long">Destination (address or lat,lng)</span>
+              <span class="label-short" style="display:none">Destination</span>
+            </label>
             <input id="destination" placeholder="e.g., 1 Ferry Building, San Francisco CA"/>
           </div>
         </div>
@@ -156,15 +194,30 @@
       </div>
     </div>
 
-    <div style="text-align:center;margin:16px 0" class="muted">
-      <button id="feedbackBtn" class="btn small">Send feedback</button>
-      &nbsp;&nbsp;|&nbsp;&nbsp;
-      <a id="feedbackFooterLink" href="#" class="muted">Open form</a>
-    </div>
+    <footer>
+      <span id="buildInfoFooter"></span>
+      <span>•</span>
+      <a href="#" id="changelogLink">Changelog</a>
+      <span>•</span>
+      <a href="#" id="supportLink">Support</a>
+      <span>•</span>
+      <a href="#" id="privacyLink">Privacy</a>
+    </footer>
   </div>
 
   <!-- Main app logic -->
-  <!-- FIX #1: cache-bust so updated placeholders (no dots) load -->
   <script src="/static/app.js"></script>
+  <script>
+    // Mirror build label into footer if present
+    (function(){
+      const top = document.getElementById('buildInfo');
+      const foot = document.getElementById('buildInfoFooter');
+      if (top && foot) {
+        const obs = new MutationObserver(() => { foot.textContent = top.textContent || '1.0.0 (Test 1)'; });
+        obs.observe(top, { childList:true, characterData:true, subtree:true });
+        foot.textContent = top.textContent || '1.0.0 (Test 1)';
+      }
+    })();
+  </script>
 </body>
 </html>
